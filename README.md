@@ -30,10 +30,9 @@ Sur certains navigateurs récents (Chrome, Edge, Brave), vous devez activer le m
 </div>
 
 Une fois Tampermonkey installé, choisissez votre version de la Freebox Ultra "Seule l’image est différente." :
-<img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20Classic.png?raw=true" width="100" align="middle">
-* 🚀 **Version Ultra Classic** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-classic-dashboard.user.js)
-* <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20Classic.png?raw=true" width="100" align="middle">
-* 💎 **Version Ultra Limited** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-limited-dashboard.user.js)
+
+* 🚀 **Version Ultra Classic** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-classic-dashboard.user.js) <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20Classic.png?raw=true" width="100" align="middle">
+* 💎 **Version Ultra Limited** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-limited-dashboard.user.js) <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true" width="100" align="middle">
 
 >**Procédure :** Une page **Tampermonkey** s'ouvrira automatiquement après le clic. Cliquez simplement sur le bouton **"Installer"**.
 ---
