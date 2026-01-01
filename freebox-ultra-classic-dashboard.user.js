@@ -6,7 +6,7 @@
 // @author       Steven17200 with Gemini 3
 // @match        http://mafreebox.freebox.fr/
 // @match        https://mafreebox.freebox.fr/
-// @icon https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true
+// @icon         https://www.free.fr/favicon.ico
 // @match        http://192.168.1.254/
 // @match        https://192.168.1.254/
 // @grant        GM_addStyle
