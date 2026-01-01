@@ -19,7 +19,7 @@
  // --- Changer la source de l'image par le votre ---
     const boxImageUrl = "https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true";
 
-   function getTempColor(temp) {
+function getTempColor(temp) {
         if (temp < 63) return '#4CAF50';
         if (temp <= 69) return '#FF9800';
         return '#F44336';
@@ -48,6 +48,7 @@
         .state-up { color: #00ff00; font-weight: bold; }
         .state-down { color: #f44336; font-weight: bold; }
         .led { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     `;
 
     GM_addStyle(css);
@@ -135,6 +136,12 @@
                 }
                 const cpuTemps = [s.temp_cpu0||s.temp_cpum, s.temp_cpu1||s.temp_cpum, s.temp_cpu2||s.temp_cpub, s.temp_cpu3||s.temp_cpub];
 
+                // --- Logique de mise à jour ---
+                let updateStatus = '<span style="color:#4CAF50">Système : À jour ✅</span>';
+                if (s.need_reboot) {
+                    updateStatus = '<span style="color:#f44336; font-weight:bold; animation: blink 1s infinite;">MAJ DISPONIBLE (REBOOT) 📥</span>';
+                }
+
                 document.getElementById('content-right').innerHTML = `
                     <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
                         ${cpuTemps.map((temp, i) => `
@@ -154,7 +161,8 @@
 
                     <div class="footer-info">
                         Uptime: <b>${s.uptime}</b><br>
-                        Version OS: <b style="color:#00d4ff">${s.firmware_version}</b>
+                        Version OS: <b style="color:#00d4ff">${s.firmware_version}</b><br>
+                        ${updateStatus}
                     </div>
                 `;
             }
