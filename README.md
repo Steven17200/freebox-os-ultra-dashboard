@@ -29,7 +29,7 @@ Sur certains navigateurs récents (Chrome, Edge, Brave), vous devez activer le m
   <p><i>Aperçu des panneaux Ultra Net et Ultra Sys</i></p>
 </div>
 
-Une fois Tampermonkey installé, choisissez votre version préférée :
+Une fois Tampermonkey installé, choisissez votre version de la Freebox Ultra "Seule l’image est différente." :
 
 * 🚀 **Version Ultra Classic** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-classic-dashboard.user.js)
 * 💎 **Version Ultra Limited** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-limited-dashboard.user.js)
