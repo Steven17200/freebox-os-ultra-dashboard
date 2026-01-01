@@ -1,21 +1,29 @@
-# 🚀 Freebox OS - Dashboard Ultra Limited
+## 🛠 Prérequis & Installation
 
-Ce script pour **Tampermonkey** transforme l'interface de votre Freebox Ultra en y ajoutant deux panneaux de monitoring futuristes et transparents (Glassmorphism).
+### 1. Installer l'extension Tampermonkey
+Pour utiliser ce script, vous devez d'abord installer l'extension **Tampermonkey** sur un navigateur compatible :
+👉 [**Télécharger Tampermonkey (Site Officiel)**](https://www.tampermonkey.net/)
 
-## 📸 Aperçu
-![Dashboard Preview](freebox-os-ultra-dashboard.jpg)
+| Navigateur | Compatibilité |
+| :--- | :--- |
+| **Google Chrome** | ✅ Testé & Approuvé |
+| **Microsoft Edge** | ✅ Testé & Approuvé |
+| **Brave** | ✅ Testé & Approuvé |
+| **Mozilla Firefox** | ✅ Compatible |
 
-## ✨ Fonctionnalités
-- **Panel ULTRA NET** : Affichage en temps réel des débits (descendant/montant), nombre d'appareils connectés, adresse IP et état du bloqueur de pub.
-- **Panel ULTRA SYS** : Monitoring des températures des 4 cœurs CPU, espace libre sur le disque NVMe, vitesse de ventilation et Uptime.
-- **Optimisation Débit** : Correction automatique de l'affichage de la capacité de ligne à 8000 Mbps.
-- **Alertes visuelles** : Les températures changent de couleur (Vert/Orange/Rouge) selon l'état de chauffe.
+---
 
-## 🛠 Installation
-1. Installez l'extension **Tampermonkey** sur votre navigateur.
-2. Cliquez sur le lien ci-dessous pour installer le script :
-👉 [**INSTALLER LE DASHBOARD**](METTEZ_VOTRE_LIEN_RAW_ICI)
-3. Connectez-vous à `mafreebox.freebox.fr` !
+### 2. Activer le "Mode Développeur" (Indispensable)
+Sur certains navigateurs récents (Chrome, Edge, Brave), vous devez activer le mode développeur pour permettre l'exécution des scripts locaux :
 
-## ⚖️ Licence
-Distribué sous la licence MIT. Voir `LICENSE` pour plus d'informations.
+1. Ouvrez l'onglet **Extensions** de votre navigateur (ou tapez `chrome://extensions` dans la barre d'adresse).
+2. En haut à droite, activez l'interrupteur **Mode développeur**.
+3. Redémarrez votre navigateur.
+
+---
+
+### 3. Installer le Dashboard Ultra
+Une fois Tampermonkey installé :
+1. Cliquez sur le lien suivant : [👉 **INSTALLER LE SCRIPT (CLIQUEZ ICI)**](VOTRE_LIEN_RAW_ICI)
+2. Une page Tampermonkey s'ouvre, cliquez sur le bouton vert **Installer**.
+3. Connectez-vous à votre interface Freebox (`http://mafreebox.freebox.fr`) pour voir apparaître vos nouveaux panneaux !
