@@ -34,13 +34,13 @@ Une fois Tampermonkey installé, choisissez votre version préférée :
 * 🚀 **Version Ultra Classic** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-classic-dashboard.user.js)
 * 💎 **Version Ultra Limited** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-limited-dashboard.user.js)
 
-**Procédure :** Une page **Tampermonkey** s'ouvrira automatiquement après le clic. Cliquez simplement sur le bouton vert **"Installer"** .
+>**Procédure :** Une page **Tampermonkey** s'ouvrira automatiquement après le clic. Cliquez simplement sur le bouton **"Installer"**.
 ---
 #### 🔑 Utilitaires (Optionnel)
 * ⚡ **Auto-login Freebox OS** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Auto-login-Freebox-OS.user.js)
   > **Note :** Après l'installation, vous devrez éditer le script dans Tampermonkey pour remplacer `VOTRE_PASSWORD` par votre véritable mot de passe.
 
-**Procédure :** Cliquez sur les liens ci-dessus, puis sur le bouton vert **"Installer"** dans la page Tampermonkey qui s'ouvre.
+>**Procédure :** Cliquez sur les liens ci-dessus, puis sur le bouton  **"Installer"** dans la page Tampermonkey qui s'ouvre.
 ---
 
 ## 📚 Ressources & Crédits
