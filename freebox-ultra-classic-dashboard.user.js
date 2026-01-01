@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Freebox OS - Dashboard Freebox Ultra limited
+// @name         Freebox OS - Dashboard Freebox Ultra Classic
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
 // @version      V1
 // @description  Dashboard
