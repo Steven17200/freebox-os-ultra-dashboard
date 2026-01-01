@@ -17,7 +17,7 @@
 (function() {
     'use strict';
  // --- Changer la source de l'image par le votre ---
-    const boxImageUrl = "https://i.postimg.cc/gkhT4nRt/freebox-limited.png";
+    const boxImageUrl = "https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true";
 
     function getTempColor(temp) {
         if (temp < 63) return '#4CAF50';
