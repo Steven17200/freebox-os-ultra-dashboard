@@ -23,6 +23,10 @@ Sur certains navigateurs récents (Chrome, Edge, Brave), vous devez activer le m
 ---
 
 ### 3. Installer le Dashboard Ultra
+<div align="center">
+  <img src="freebox-os-ultra-dashboard.jpg" width="400" alt="Aperçu du Dashboard">
+  <p><i>Aperçu des panneaux Ultra Net et Ultra Sys</i></p>
+</div>
 Une fois Tampermonkey installé :
 1. Cliquez sur le lien suivant : [👉 **INSTALLER LE SCRIPT Freebox Ultra Classic(CLIQUEZ ICI)**](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-classic-dashboard.user.js)
 2.  Cliquez sur le lien suivant : [👉 **INSTALLER LE SCRIPT Freebox Ultra Limited (CLIQUEZ ICI)**](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-limited-dashboard.user.js)
