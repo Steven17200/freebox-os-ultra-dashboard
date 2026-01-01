@@ -37,7 +37,7 @@ Une fois Tampermonkey installé, choisissez votre version préférée :
 ---
 **Procédure :** Une page **Tampermonkey** s'ouvrira automatiquement après le clic. Cliquez simplement sur le bouton vert **"Installer"** pour activer le dashboard sur votre interface Freebox.
 #### 🔑 Utilitaires (Optionnel)
-* ⚡ **Auto-login Freebox OS** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-auto-login.user.js)
+* ⚡ **Auto-login Freebox OS** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Auto-login-Freebox-OS.user.js)
   > **Note :** Après l'installation, vous devrez éditer le script dans Tampermonkey pour remplacer `VOTRE_PASSWORD` par votre véritable mot de passe.
 
 ---
