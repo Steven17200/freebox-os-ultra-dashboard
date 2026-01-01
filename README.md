@@ -42,3 +42,10 @@ Une fois Tampermonkey installé, choisissez votre version préférée :
 
 ---
 **Procédure :** Cliquez sur les liens ci-dessus, puis sur le bouton vert **"Installer"** dans la page Tampermonkey qui s'ouvre.
+---
+
+## 📚 Ressources & Crédits
+
+* **Documentation Officielle** : Ce projet s'appuie sur le [SDK Freebox OS](https://dev.freebox.fr/sdk/os/) pour l'analyse des API système.
+* **Intelligence Artificielle** : Les scripts de ce dashboard ont été développés avec l'aide de **Gemini 2.0 (Google)** pour l'optimisation du code et du design.
+* **Auteur** : [Steven17200](https://github.com/Steven17200)
