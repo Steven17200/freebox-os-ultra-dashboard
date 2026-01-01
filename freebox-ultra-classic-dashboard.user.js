@@ -1,13 +1,12 @@
 // ==UserScript==
-// @name         Freebox OS - Dashboard Freebox Ultra (Blanche)
-// @namespace    http://tampermonkey.net/
+// @name         Freebox OS - Dashboard Freebox Ultra limited
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
 // @version      V1
 // @description  Dashboard
 // @author       Steven17200 with Gemini 3
 // @match        http://mafreebox.freebox.fr/
 // @match        https://mafreebox.freebox.fr/
-// @icon         https://www.free.fr/favicon.ico
+// @icon https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true
 // @match        http://192.168.1.254/
 // @match        https://192.168.1.254/
 // @grant        GM_addStyle
@@ -17,7 +16,7 @@
 (function() {
     'use strict';
  // --- Changer la source de l'image par le votre ---
-    const boxImageUrl = "https://i.postimg.cc/cJ0C6GxX/image.png";
+    const boxImageUrl = "https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true";
 
     function getTempColor(temp) {
         if (temp < 63) return '#4CAF50';
