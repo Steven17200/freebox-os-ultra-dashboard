@@ -18,7 +18,7 @@
  // --- Changer la source de l'image par le votre ---
     const boxImageUrl = "https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20Classic.png?raw=true";
 
-    function getTempColor(temp) {
+function getTempColor(temp) {
         if (temp < 63) return '#4CAF50';
         if (temp <= 69) return '#FF9800';
         return '#F44336';
@@ -90,11 +90,9 @@
                 const dnsPrimary = (dhcp.success && dhcp.result.dns && dhcp.result.dns.length > 0) ? dhcp.result.dns[0] : "Auto (Free)";
                 const deviceCount = (lan.success && lan.result[0]) ? lan.result[0].host_count : "0";
 
-                // --- LOGIQUE DEBIT ---
                 const currentDown = (c.rate_down / 125000).toFixed(1);
                 const currentUp = (c.rate_up / 125000).toFixed(1);
 
-                // Correction Capacité : On bride l'affichage à 8000 si l'API renvoie des valeurs aberrantes (64G)
                 let maxD = (c.bandwidth_down / 125000);
                 let maxU = (c.bandwidth_up / 125000);
                 if (maxD > 8500) maxD = 8000;
@@ -125,7 +123,6 @@
                     </div>
                 `;
 
-                // --- DROITE (SYS) ---
                 let diskTemp = "N/A", freeGBText = "Calcul...", diskPercent = 0;
                 if (diskData.success && diskData.result[0]) diskTemp = (diskData.result[0].temp || "N/A") + "°C";
                 if (partData.success) {
@@ -153,7 +150,11 @@
                     <div class="stat-label" style="margin-top:10px;">Ventilation</div>
                     <div class="stat-value">${s.fan_rpm}<span class="stat-unit">RPM</span></div>
                     <div class="gauge-bar"><div class="gauge-fill" style="width:${Math.min(s.fan_rpm/35, 100)}%; background:#888;"></div></div>
-                    <div class="footer-info">Uptime: <b>${s.uptime}</b></div>
+
+                    <div class="footer-info">
+                        Uptime: <b>${s.uptime}</b><br>
+                        Version OS: <b style="color:#00d4ff">${s.firmware_version}</b>
+                    </div>
                 `;
             }
         } catch (e) { console.error("Erreur Dash:", e); }
