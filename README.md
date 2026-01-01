@@ -46,6 +46,7 @@ Une fois Tampermonkey installé, choisissez votre version de la Freebox Ultra "S
 ## 📚 Ressources & Crédits
 
 * **Documentation Officielle** : Ce projet s'appuie sur le [SDK Freebox OS](https://dev.freebox.fr/sdk/os/) pour l'analyse des API système.
+ > compilé en 44 fichiers PDF, un par section, afin que Gemini puisse générer les scripts
 * **Intelligence Artificielle** : Les scripts de ce dashboard ont été développés ainsi que ce tuto à 100% par **Gemini 3 Flash (Google)**.
  > Seules les 2 heures d’instruction et les tests sont de moi… et oui, j’ai quand même réussi à faire un petit quelque chose !
 * **Auteur** : [Steven17200](https://github.com/Steven17200)
