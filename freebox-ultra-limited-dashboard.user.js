@@ -16,7 +16,7 @@
 
 (function() {
     'use strict';
-    const boxImageUrl = "https://i.postimg.cc/FFLkDLFg/Freebox-Ultra-Stranger-Things-perso.png";
+    const boxImageUrl = "https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true";
 
     function getTempColor(temp) {
         if (temp < 63) return '#4CAF50';
