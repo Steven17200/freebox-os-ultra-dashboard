@@ -25,7 +25,7 @@ Sur certains navigateurs récents (Chrome, Edge, Brave), vous devez activer le m
 ### 3. Installer le Dashboard Ultra
 
 <div align="center">
-  <img src="Dashboard" width="600" alt="Aperçu du Dashboard">
+  <img src="Dashboard " width="600" alt="Aperçu du Dashboard">
   <p><i>Aperçu des panneaux Ultra Net et Ultra Sys</i></p>
 </div>
 
