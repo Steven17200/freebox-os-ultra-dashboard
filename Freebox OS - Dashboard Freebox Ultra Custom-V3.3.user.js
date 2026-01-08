@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    http://tampermonkey.net/
-// @version      V3.3
-// @description  Alignement parfait des icônes SVG (X/Free) et Images
+// @version      V3.8
+// @description  Icônes centrées et abaissées (130px) - Rétablissement total et définitif des fonctions
 // @author       Steven17200 with Gemini 3
+// @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
 // @match        https://mafreebox.freebox.fr/*
 // @match        http://192.168.1.254/*
@@ -24,7 +25,6 @@
     }
 
     GM_addStyle(`
-        /* Fond d'écran et Logos */
         body, #u-desktop-body {
             background-image: url("${customBgUrl}") !important;
             background-size: cover !important;
@@ -32,75 +32,43 @@
             background-attachment: fixed !important;
         }
         #u-desktop-body img[src*="bg_freeboxos.svg"] { display: none !important; }
-        .fbx-os-logo, .fbx-os-home-logo, .fbx-os-home-version, .fbx-os-home-logo-cnt {
-            color: #FFFFFF !important;
-            fill: #FFFFFF !important;
-            text-shadow: 0px 2px 4px rgba(0,0,0,0.5) !important;
-        }
-        .fbx-os-home-logo img, .fbx-os-logo img { filter: brightness(0) invert(1) !important; }
 
-        /* SYMÉTRIE 10PX */
         .ultra-panel {
             position: absolute;
             top: 30px; bottom: 80px; width: 280px;
             background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(20px);
             border-radius: 25px; border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 20px; color: white; font-family: 'Roboto', sans-serif; z-index: 9999;
+            padding: 20px; color: white; font-family: 'Roboto', sans-serif; z-index: 999;
             box-shadow: 0 10px 40px rgba(0,0,0,0.6); overflow-y: auto;
         }
         #panel-left { left: 10px !important; }
         #panel-right { right: 10px !important; border: 1px solid rgba(255, 0, 0, 0.2); }
 
-        /* TEXTE ROUGE AU CLIC TUILES */
-        .u-desktop-shortcut-text { color: #ffffff !important; font-weight: bold !important; }
-        .u-desktop-shortcut.u-shortcut-selected .u-desktop-shortcut-text { color: #ff0000 !important; }
-
-        /* STYLE DES TUILES SUR LE BUREAU */
+        /* --- ICONS CENTRÉES ET PLUS BASSES (V3.8) --- */
         #social-tiles-container {
             position: absolute;
-            left: 310px;
-            bottom: 60px;
-            display: flex; gap: 15px; z-index: 10;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 130px; /* Abaissé pour libérer le titre Freebox OS */
+            display: flex;
+            gap: 20px;
+            z-index: 10000;
         }
         .social-tile {
             display: flex; flex-direction: column; align-items: center;
             cursor: pointer; text-decoration: none !important; transition: transform 0.2s;
         }
         .social-tile:hover { transform: scale(1.1); }
-
         .social-tile .icon-wrapper {
-            width: 55px; height: 55px;
-            background: rgba(0,0,0,0.6);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; /* Centrage total */
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-sizing: border-box;
+            width: 50px; height: 50px; background: rgba(0,0,0,0.6);
+            border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);
         }
+        .social-tile .icon-wrapper svg { width: 28px; height: 28px; fill: white; display: block; margin: auto; }
+        .white-tile-custom { background: #FFFFFF !important; border: 1.5px solid #000000 !important; }
+        .social-tile img.icon-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .social-tile span { color: white; font-size: 9px; margin-top: 5px; font-weight: bold; text-shadow: 1px 1px 2px black; text-align: center; width: 75px; line-height: 10px; }
 
-        /* --- MODIF V3.3 : Centrage forcé pour les icônes SVG (X et Free) --- */
-        .social-tile .icon-wrapper svg {
-            width: 30px; height: 30px;
-            fill: white;
-            display: block;
-            margin: auto; /* Sécurité supplémentaire pour le centrage */
-        }
-
-        /* FOND BLANC + LISERÉ NOIR EXTÉRIEUR POUR LES DEUX ESPACES ABONNÉS */
-        .white-tile-custom {
-            background: #FFFFFF !important;
-            border: 1.5px solid #000000 !important;
-        }
-
-        .social-tile img.icon-img {
-            width: 100%; height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .social-tile span { color: white; font-size: 10px; margin-top: 8px; font-weight: bold; text-shadow: 1px 1px 2px black; text-align: center; width: 80px; line-height: 11px; }
-
-        /* Styles statistiques */
         .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; margin-top: 10px; letter-spacing: 1px; }
         .stat-value { font-size: 17px; font-weight: 700; color: #fff; margin: 1px 0; display: flex; align-items: center; }
         .stat-unit { font-size: 11px; color: #f00; margin-left: 4px; font-weight: 400; }
@@ -121,7 +89,6 @@
         if (document.getElementById('social-tiles-container')) return;
         const container = document.createElement('div');
         container.id = 'social-tiles-container';
-
         const xIcon = `<svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>`;
         const ufSiteIcon = `https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRU0fmXzVd3mpLpmZn1gaIQsQMwRSL91Okm1Q&s`;
         const fbxAboIcon = `https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/free-app-logo.png?raw=true`;
@@ -139,13 +106,11 @@
 
     function build() {
         if (!document.getElementById('panel-left')) {
-            const pl = document.createElement('div');
-            pl.id = 'panel-left'; pl.className = 'ultra-panel';
+            const pl = document.createElement('div'); pl.id = 'panel-left'; pl.className = 'ultra-panel';
             document.body.appendChild(pl);
         }
         if (!document.getElementById('panel-right')) {
-            const pr = document.createElement('div');
-            pr.id = 'panel-right'; pr.className = 'ultra-panel';
+            const pr = document.createElement('div'); pr.id = 'panel-right'; pr.className = 'ultra-panel';
             document.body.appendChild(pr);
         }
         addSocialTiles();
@@ -153,16 +118,13 @@
 
     async function refresh() {
         try {
-            const [connRes, configRes, sysRes, diskRes, partRes, wifiRes, dhcpCfgRes, vmRes] = await Promise.all([
+            const res = await Promise.all([
                 fetch('/api/v4/connection/'), fetch('/api/v4/connection/config/'),
                 fetch('/api/v4/system/'), fetch('/api/v4/storage/disk/'),
                 fetch('/api/v4/storage/partition/'), fetch('/api/v4/wifi/config/'),
                 fetch('/api/v4/dhcp/config/'), fetch('/api/v8/vm/')
             ]);
-            const conn = await connRes.json(); const config = await configRes.json();
-            const sys = await sysRes.json(); const diskData = await diskRes.json();
-            const partData = await partRes.json(); const wifi = await wifiRes.json();
-            const dhcpCfg = await dhcpCfgRes.json(); const vmData = await vmRes.json();
+            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData] = await Promise.all(res.map(r => r.json()));
 
             if (conn.success && sys.success) {
                 const c = conn.result; const s = sys.result;
@@ -185,7 +147,6 @@
                     <div class="max-val">Capacité : 8.0 Gbps</div>
                     <div class="stat-label">Débit Montant</div>
                     <div class="stat-value">${(c.rate_up / 125000).toFixed(1)}<span class="stat-unit">Mbps</span></div>
-                    <div class="max-val">Capacité : 8.0 Gbps</div>
                     <div class="footer-info">
                         FTTH : <b style="color:#0f0;">${c.state.toUpperCase()}</b> (${c.media.toUpperCase()})<br>
                         IP : <b style="color:#fff">${c.ipv4 || 'N/A'}</b><br>
@@ -210,6 +171,7 @@
                     }
                 }
                 const cpuTemps = [s.temp_cpu0||s.temp_cpum, s.temp_cpu1||s.temp_cpum, s.temp_cpu2||s.temp_cpub, s.temp_cpu3||s.temp_cpub];
+
                 document.getElementById('panel-right').innerHTML = `
                     <h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">SYS</span></h1>
                     <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
