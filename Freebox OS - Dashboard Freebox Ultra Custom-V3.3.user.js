@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
-// @namespace    http://tampermonkey.net/
-// @version      V3.9
-// @description  Icônes centrées et abaissées (130px) - Rétablissement total et définitif des fonctions
-// @author       Steven17200 with Gemini 3
+// @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
+// @version      4.0
+// @description  Dashboard Ultra Custom — panneaux NET/SYS, débits réels, image locale GitHub
+// @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
 // @match        https://mafreebox.freebox.fr/*
@@ -11,45 +11,81 @@
 // @match        https://192.168.1.254/*
 // @grant        GM_addStyle
 // @run-at       document-end
+// @updateURL    https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Freebox%20OS%20-%20Dashboard%20Freebox%20Ultra%20Custom-V3.3.user.js
+// @downloadURL  https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Freebox%20OS%20-%20Dashboard%20Freebox%20Ultra%20Custom-V3.3.user.js
+// @connect      raw.githubusercontent.com
+// @connect      github.com
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
-    const boxImageUrl = "https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Freebox%20Ultra%20Stranger%20Things.png";
-    const customBgUrl = "https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/ea85a7f54b61d4398e16004306f07acf7c260713/Fond%20Freebox.svg";
 
-    function getTempColor(temp) {
-        if (temp < 63) return '#4CAF50';
-        if (temp <= 69) return '#FF9800';
+    const BOX_IMG = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Freebox%20Ultra%20Stranger%20Things.png';
+    const BG_IMG = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Fond%20Freebox.svg';
+    const ICON_FREEBOX = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/free-app-logo.png';
+    const ICON_MOBILE = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Free_mobile-app-logo.png';
+    const ICON_UF = 'https://www.universfreebox.com/favicon.ico';
+
+    const X_SVG = '<svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>';
+
+    function tempColor(t) {
+        const n = Number(t);
+        if (!Number.isFinite(n)) return '#888';
+        if (n < 63) return '#4CAF50';
+        if (n <= 69) return '#FF9800';
         return '#F44336';
+    }
+
+    function fmtRateBytes(bytesPerSec) {
+        const mbps = (Number(bytesPerSec) || 0) / 125000;
+        if (mbps >= 1000) return { v: (mbps / 1000).toFixed(2), u: 'Gbps' };
+        return { v: mbps.toFixed(1), u: 'Mbps' };
+    }
+
+    function fmtCapBits(bitsPerSec) {
+        const bps = Number(bitsPerSec) || 0;
+        if (bps <= 0) return 'n/a';
+        const gbps = bps / 1e9;
+        if (gbps >= 1) return gbps.toFixed(1) + ' Gbps';
+        return (bps / 1e6).toFixed(0) + ' Mbps';
+    }
+
+    async function api(path) {
+        try {
+            const r = await fetch(path, { credentials: 'same-origin' });
+            if (!r.ok) return { success: false };
+            return await r.json();
+        } catch (e) {
+            return { success: false };
+        }
     }
 
     GM_addStyle(`
         body, #u-desktop-body {
-            background-image: url("${customBgUrl}") !important;
+            background-image: url("${BG_IMG}") !important;
             background-size: cover !important;
             background-position: center !important;
             background-attachment: fixed !important;
         }
-        #u-desktop-body img[src*="bg_freeboxos.svg"] { display: none !important; }
+        #u-desktop-body img[src*="bg_freeboxos.svg"], .fbx-os-logo { display: none !important; }
+        img#box-avatar.broken { display: none !important; }
 
         .ultra-panel {
             position: absolute;
             top: 30px; bottom: 80px; width: 280px;
             background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(20px);
             border-radius: 25px; border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 20px; color: white; font-family: 'Roboto', sans-serif; z-index: 999;
+            padding: 20px; color: white; font-family: 'Roboto', sans-serif; z-index: 9999;
             box-shadow: 0 10px 40px rgba(0,0,0,0.6); overflow-y: auto;
         }
         #panel-left { left: 10px !important; }
         #panel-right { right: 10px !important; border: 1px solid rgba(255, 0, 0, 0.2); }
 
-        /* --- ICONS CENTRÉES ET PLUS BASSES (V3.8) --- */
         #social-tiles-container {
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            top: 130px; /* Abaissé pour libérer le titre Freebox OS */
+            top: 130px;
             display: flex;
             gap: 20px;
             z-index: 10000;
@@ -89,105 +125,168 @@
         if (document.getElementById('social-tiles-container')) return;
         const container = document.createElement('div');
         container.id = 'social-tiles-container';
-        const xIcon = `<svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>`;
-        const ufSiteIcon = `https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRU0fmXzVd3mpLpmZn1gaIQsQMwRSL91Okm1Q&s`;
-        const fbxAboIcon = `https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/free-app-logo.png?raw=true`;
-        const mobileAboIcon = `https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/Free_mobile-app-logo.png?raw=true`;
-
-        container.innerHTML = `
-            <a href="https://x.com/UniversFreebox/" target="_blank" class="social-tile"><div class="icon-wrapper">${xIcon}</div><span>X Univers Freebox</span></a>
-            <a href="https://www.universfreebox.com/" target="_blank" class="social-tile"><div class="icon-wrapper"><img src="${ufSiteIcon}" class="icon-img"></div><span>Univers Freebox</span></a>
-            <a href="https://x.com/free" target="_blank" class="social-tile"><div class="icon-wrapper">${xIcon}</div><span>X Free</span></a>
-            <a href="https://subscribe.free.fr/login/" target="_blank" class="social-tile"><div class="icon-wrapper white-tile-custom"><img src="${fbxAboIcon}" class="icon-img"></div><span>Espace Freebox</span></a>
-            <a href="https://mobile.free.fr/account/v2" target="_blank" class="social-tile"><div class="icon-wrapper white-tile-custom"><img src="${mobileAboIcon}" class="icon-img"></div><span>Espace Mobile</span></a>
-        `;
+        container.innerHTML =
+            '<a href="https://x.com/UniversFreebox/" target="_blank" class="social-tile"><div class="icon-wrapper">' + X_SVG + '</div><span>X Univers Freebox</span></a>' +
+            '<a href="https://www.universfreebox.com/" target="_blank" class="social-tile"><div class="icon-wrapper"><img src="' + ICON_UF + '" class="icon-img" onerror="this.style.display=\'none\'"></div><span>Univers Freebox</span></a>' +
+            '<a href="https://x.com/free" target="_blank" class="social-tile"><div class="icon-wrapper">' + X_SVG + '</div><span>X Free</span></a>' +
+            '<a href="https://subscribe.free.fr/login/" target="_blank" class="social-tile"><div class="icon-wrapper white-tile-custom"><img src="' + ICON_FREEBOX + '" class="icon-img" onerror="this.style.display=\'none\'"></div><span>Espace Freebox</span></a>' +
+            '<a href="https://mobile.free.fr/account/v2" target="_blank" class="social-tile"><div class="icon-wrapper white-tile-custom"><img src="' + ICON_MOBILE + '" class="icon-img" onerror="this.style.display=\'none\'"></div><span>Espace Mobile</span></a>';
         document.body.appendChild(container);
     }
 
     function build() {
         if (!document.getElementById('panel-left')) {
-            const pl = document.createElement('div'); pl.id = 'panel-left'; pl.className = 'ultra-panel';
+            const pl = document.createElement('div');
+            pl.id = 'panel-left';
+            pl.className = 'ultra-panel';
             document.body.appendChild(pl);
         }
         if (!document.getElementById('panel-right')) {
-            const pr = document.createElement('div'); pr.id = 'panel-right'; pr.className = 'ultra-panel';
+            const pr = document.createElement('div');
+            pr.id = 'panel-right';
+            pr.className = 'ultra-panel';
             document.body.appendChild(pr);
         }
         addSocialTiles();
     }
 
     async function refresh() {
+        build();
         try {
-            const res = await Promise.all([
-                fetch('/api/v4/connection/'), fetch('/api/v4/connection/config/'),
-                fetch('/api/v4/system/'), fetch('/api/v4/storage/disk/'),
-                fetch('/api/v4/storage/partition/'), fetch('/api/v4/wifi/config/'),
-                fetch('/api/v4/dhcp/config/'), fetch('/api/v8/vm/')
+            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData] = await Promise.all([
+                api('/api/v4/connection/'),
+                api('/api/v4/connection/config/'),
+                api('/api/v4/system/'),
+                api('/api/v4/storage/disk/'),
+                api('/api/v4/storage/partition/'),
+                api('/api/v4/wifi/config/'),
+                api('/api/v4/dhcp/config/'),
+                api('/api/v8/vm/')
             ]);
-            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData] = await Promise.all(res.map(r => r.json()));
 
-            if (conn.success && sys.success) {
-                const c = conn.result; const s = sys.result;
-                const adblockOn = config.success ? config.result.adblock : false;
-                const wifiOn = wifi.success ? wifi.result.enabled : false;
-                const dnsPrimary = (dhcpCfg.success && dhcpCfg.result.dns && dhcpCfg.result.dns.length > 0) ? dhcpCfg.result.dns[0] : "Auto";
-                const updateIcon = s.need_reboot ? '<span style="color:#f44336">📥 Redémarrer</span>' : '<span style="color:#4CAF50">✅ À jour</span>';
+            if (!conn.success || !sys.success) return;
 
-                document.getElementById('panel-left').innerHTML = `
-                    <h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">NET</span></h1>
-                    <img id="box-avatar" src="${boxImageUrl}">
-                    <div class="stat-label">Système OS</div>
-                    <div style="font-size:11px; margin-bottom:4px;">Version : <b>${s.firmware_version}</b></div>
-                    <div style="font-size:11px; margin-bottom:4px;">État : <b>${updateIcon}</b></div>
-                    <div style="font-size:11px; color:#aaa; margin-bottom:8px;">Uptime : ${s.uptime}</div>
-                    <div class="stat-label">Réseau Wi-Fi</div>
-                    <div class="stat-value"><span class="led ${wifiOn ? 'led-active' : 'led-off'}"></span>${wifiOn ? 'ACTIF' : 'OFF'}</div>
-                    <div class="stat-label">Débit Descendant</div>
-                    <div class="stat-value">${(c.rate_down / 125000).toFixed(1)}<span class="stat-unit">Mbps</span></div>
-                    <div class="max-val">Capacité : 8.0 Gbps</div>
-                    <div class="stat-label">Débit Montant</div>
-                    <div class="stat-value">${(c.rate_up / 125000).toFixed(1)}<span class="stat-unit">Mbps</span></div>
-                    <div class="footer-info">
-                        FTTH : <b style="color:#0f0;">${c.state.toUpperCase()}</b> (${c.media.toUpperCase()})<br>
-                        IP : <b style="color:#fff">${c.ipv4 || 'N/A'}</b><br>
-                        DNS : <b style="color:#00d4ff">${dnsPrimary}</b><br>
-                        Adblock : <b style="color:${adblockOn ? '#0f0' : '#f00'}">${adblockOn ? 'ACTIF' : 'OFF'}</b>
-                    </div>`;
+            const c = conn.result || {};
+            const s = sys.result || {};
+            const adblockOn = !!(config.success && config.result && config.result.adblock);
+            const wifiOn = !!(wifi.success && wifi.result && wifi.result.enabled);
+            const dnsPrimary = (dhcpCfg.success && dhcpCfg.result && dhcpCfg.result.dns && dhcpCfg.result.dns.length)
+                ? dhcpCfg.result.dns[0] : 'Auto';
+            const updateIcon = s.need_reboot
+                ? '<span style="color:#f44336">📥 Redémarrer</span>'
+                : '<span style="color:#4CAF50">✅ À jour</span>';
 
-                let vmsHtml = '';
-                if (vmData.success && vmData.result) {
-                    vmData.result.forEach(vm => {
-                        const isRunning = vm.status === 'running';
-                        vmsHtml += `<div class="vm-card ${isRunning ? 'active' : ''}"><div style="font-size:11px; font-weight:700;"><span class="led" style="background:${isRunning ? '#0f0' : '#f00'}; height:7px; width:7px;"></span>${vm.name.toUpperCase()}</div><div style="color:${isRunning ? '#00ff00' : '#ff4444'}; font-size:13px; font-weight:bold; font-family:monospace; margin-top:3px;">${isRunning ? 'ONLINE' : 'OFFLINE'}</div></div>`;
-                    });
-                }
-                let diskTemp = "N/A", freeGB = "0", diskPercent = 0;
-                if (diskData.success && diskData.result[0]) diskTemp = (diskData.result[0].temp || "N/A") + "°C";
-                if (partData.success) {
-                    const p = partData.result.find(part => part.total_bytes > 0);
-                    if (p) {
-                        freeGB = ((p.total_bytes - p.used_bytes) / (1024 ** 3)).toFixed(1);
-                        diskPercent = ((p.used_bytes / p.total_bytes) * 100).toFixed(1);
-                    }
-                }
-                const cpuTemps = [s.temp_cpu0||s.temp_cpum, s.temp_cpu1||s.temp_cpum, s.temp_cpu2||s.temp_cpub, s.temp_cpu3||s.temp_cpub];
+            const down = fmtRateBytes(c.rate_down);
+            const up = fmtRateBytes(c.rate_up);
+            const capDown = fmtCapBits(c.bandwidth_down);
+            const capUp = fmtCapBits(c.bandwidth_up);
+            const state = (c.state || 'n/a').toUpperCase();
+            const media = (c.media || '').toUpperCase();
+            const linkOk = state === 'UP' || state === 'ACTIVE';
 
-                document.getElementById('panel-right').innerHTML = `
-                    <h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">SYS</span></h1>
-                    <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-                        ${cpuTemps.map((t, i) => `<div style="width: 48%; margin-bottom: 8px;"><div class="stat-label" style="margin-top:0;">CPU ${i}</div><div class="stat-value" style="font-size:15px; color:${getTempColor(t)};">${t}°C</div><div class="gauge-bar"><div class="gauge-fill" style="width:${t}%; background:${getTempColor(t)};"></div></div></div>`).join('')}
-                    </div>
-                    <div class="stat-label">NVMe</div>
-                    <div class="stat-value" style="font-size:15px;">${freeGB} Go <span style="font-size:11px; color:#aaa; margin-left:auto;">${diskTemp}</span></div>
-                    <div class="gauge-bar"><div class="gauge-fill" style="width:${diskPercent}%; background:#2196F3;"></div></div>
-                    <div class="stat-label">Ventilation</div>
-                    <div class="stat-value" style="font-size:15px;">${s.fan_rpm} RPM</div>
-                    <div class="gauge-bar"><div class="gauge-fill" style="width:${(s.fan_rpm/3500)*100}%; background:#888;"></div></div>
-                    <div class="stat-label" style="margin-top:15px; border-top:1px solid #333; padding-top:8px;">Serveurs / VMs</div>
-                    ${vmsHtml}`;
+            const left = document.getElementById('panel-left');
+            if (left) {
+                left.innerHTML =
+                    '<h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">NET</span></h1>' +
+                    '<img id="box-avatar" src="' + BOX_IMG + '" alt="" onerror="this.classList.add(\'broken\')">' +
+                    '<div class="stat-label">Système OS</div>' +
+                    '<div style="font-size:11px; margin-bottom:4px;">Version : <b>' + (s.firmware_version || '?') + '</b></div>' +
+                    '<div style="font-size:11px; margin-bottom:4px;">État : <b>' + updateIcon + '</b></div>' +
+                    '<div style="font-size:11px; color:#aaa; margin-bottom:8px;">Uptime : ' + (s.uptime || '?') + '</div>' +
+                    '<div class="stat-label">Réseau Wi-Fi</div>' +
+                    '<div class="stat-value"><span class="led ' + (wifiOn ? 'led-active' : 'led-off') + '"></span>' + (wifiOn ? 'ACTIF' : 'OFF') + '</div>' +
+                    '<div class="stat-label">Débit Descendant</div>' +
+                    '<div class="stat-value">' + down.v + '<span class="stat-unit">' + down.u + '</span></div>' +
+                    '<div class="max-val">Capacité : ' + capDown + '</div>' +
+                    '<div class="stat-label">Débit Montant</div>' +
+                    '<div class="stat-value">' + up.v + '<span class="stat-unit">' + up.u + '</span></div>' +
+                    '<div class="max-val">Capacité : ' + capUp + '</div>' +
+                    '<div class="footer-info">' +
+                    (media || 'LIEN') + ' : <b style="color:' + (linkOk ? '#0f0' : '#f00') + ';">' + state + '</b>' +
+                    (media ? ' (' + media + ')' : '') + '<br>' +
+                    'IPv4 : <b style="color:#fff">' + (c.ipv4 || 'N/A') + '</b><br>' +
+                    (c.ipv6 ? 'IPv6 : <b style="color:#fff;font-size:10px">' + c.ipv6 + '</b><br>' : '') +
+                    'DNS : <b style="color:#00d4ff">' + dnsPrimary + '</b><br>' +
+                    'Adblock : <b style="color:' + (adblockOn ? '#0f0' : '#f00') + '">' + (adblockOn ? 'ACTIF' : 'OFF') + '</b>' +
+                    '</div>';
             }
-        } catch (e) { console.error(e); }
+
+            let vmsHtml = '';
+            if (vmData.success && Array.isArray(vmData.result) && vmData.result.length) {
+                vmData.result.forEach(function (vm) {
+                    const on = vm.status === 'running';
+                    vmsHtml += '<div class="vm-card ' + (on ? 'active' : '') + '">' +
+                        '<div style="font-size:11px; font-weight:700;">' +
+                        '<span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
+                        String(vm.name || 'VM').toUpperCase() +
+                        '</div>' +
+                        '<div style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-size:13px; font-weight:bold; font-family:monospace; margin-top:3px;">' +
+                        (on ? 'ONLINE' : 'OFFLINE') +
+                        '</div></div>';
+                });
+            } else {
+                vmsHtml = '<div style="font-size:11px;color:#888;margin-top:8px;">Aucune VM</div>';
+            }
+
+            let diskTemp = 'N/A';
+            let freeGB = '0';
+            let diskPercent = 0;
+            if (diskData.success && diskData.result && diskData.result[0]) {
+                const t = diskData.result[0].temp;
+                diskTemp = (t === 0 || t) ? t + '°C' : 'N/A';
+            }
+            if (partData.success && Array.isArray(partData.result)) {
+                const p = partData.result.find(function (part) { return part.total_bytes > 0; });
+                if (p) {
+                    freeGB = ((p.total_bytes - p.used_bytes) / (1024 ** 3)).toFixed(1);
+                    diskPercent = ((p.used_bytes / p.total_bytes) * 100).toFixed(1);
+                }
+            }
+            const cpuTemps = [
+                s.temp_cpu0 || s.temp_cpum,
+                s.temp_cpu1 || s.temp_cpum,
+                s.temp_cpu2 || s.temp_cpub,
+                s.temp_cpu3 || s.temp_cpub
+            ];
+            const fan = Number(s.fan_rpm) || 0;
+
+            const right = document.getElementById('panel-right');
+            if (right) {
+                right.innerHTML =
+                    '<h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">SYS</span></h1>' +
+                    '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">' +
+                    cpuTemps.map(function (t, i) {
+                        const col = tempColor(t);
+                        const val = (t === 0 || t) ? t : '--';
+                        return '<div style="width: 48%; margin-bottom: 8px;">' +
+                            '<div class="stat-label" style="margin-top:0;">CPU ' + i + '</div>' +
+                            '<div class="stat-value" style="font-size:15px; color:' + col + ';">' + val + '°C</div>' +
+                            '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, Number(t) || 0) + '%; background:' + col + ';"></div></div>' +
+                            '</div>';
+                    }).join('') +
+                    '</div>' +
+                    '<div class="stat-label">NVMe libre</div>' +
+                    '<div class="stat-value" style="font-size:15px;">' + freeGB + ' Go <span style="font-size:11px; color:#aaa; margin-left:auto;">' + diskTemp + '</span></div>' +
+                    '<div class="gauge-bar"><div class="gauge-fill" style="width:' + diskPercent + '%; background:#2196F3;"></div></div>' +
+                    '<div class="stat-label">Ventilation</div>' +
+                    '<div class="stat-value" style="font-size:15px;">' + fan + ' RPM</div>' +
+                    '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, (fan / 3500) * 100) + '%; background:#888;"></div></div>' +
+                    '<div class="stat-label" style="margin-top:15px; border-top:1px solid #333; padding-top:8px;">Serveurs / VMs</div>' +
+                    vmsHtml;
+            }
+        } catch (e) {
+            console.error('[Ultra Dashboard]', e);
+        }
     }
 
-    build(); refresh(); setInterval(refresh, 5000);
+    build();
+    refresh();
+    setInterval(refresh, 5000);
+
+    const mo = new MutationObserver(function () {
+        if (!document.getElementById('panel-left') || !document.getElementById('social-tiles-container')) {
+            build();
+        }
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
