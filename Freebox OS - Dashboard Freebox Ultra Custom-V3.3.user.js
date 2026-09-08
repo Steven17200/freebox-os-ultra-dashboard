@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.1
-// @description  Dashboard Ultra Custom — NET/SYS + sessions VPN serveur
+// @version      4.2
+// @description  Dashboard Ultra Custom — NET/SYS + VPN à droite
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
@@ -108,7 +108,6 @@
         }
         #u-desktop-body img[src*="bg_freeboxos.svg"], .fbx-os-logo { display: none !important; }
         img#box-avatar.broken { display: none !important; }
-
         .ultra-panel {
             position: absolute;
             top: 30px; bottom: 80px; width: 280px;
@@ -119,20 +118,11 @@
         }
         #panel-left { left: 10px !important; }
         #panel-right { right: 10px !important; border: 1px solid rgba(255, 0, 0, 0.2); }
-
         #social-tiles-container {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            top: 130px;
-            display: flex;
-            gap: 20px;
-            z-index: 10000;
+            position: absolute; left: 50%; transform: translateX(-50%);
+            top: 130px; display: flex; gap: 20px; z-index: 10000;
         }
-        .social-tile {
-            display: flex; flex-direction: column; align-items: center;
-            cursor: pointer; text-decoration: none !important; transition: transform 0.2s;
-        }
+        .social-tile { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-decoration: none !important; transition: transform 0.2s; }
         .social-tile:hover { transform: scale(1.1); }
         .social-tile .icon-wrapper {
             width: 50px; height: 50px; background: rgba(0,0,0,0.6);
@@ -143,7 +133,6 @@
         .white-tile-custom { background: #FFFFFF !important; border: 1.5px solid #000000 !important; }
         .social-tile img.icon-img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .social-tile span { color: white; font-size: 9px; margin-top: 5px; font-weight: bold; text-shadow: 1px 1px 2px black; text-align: center; width: 75px; line-height: 10px; }
-
         .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; margin-top: 10px; letter-spacing: 1px; }
         .stat-value { font-size: 17px; font-weight: 700; color: #fff; margin: 1px 0; display: flex; align-items: center; }
         .stat-unit { font-size: 11px; color: #f00; margin-left: 4px; font-weight: 400; }
@@ -179,14 +168,12 @@
     function build() {
         if (!document.getElementById('panel-left')) {
             const pl = document.createElement('div');
-            pl.id = 'panel-left';
-            pl.className = 'ultra-panel';
+            pl.id = 'panel-left'; pl.className = 'ultra-panel';
             document.body.appendChild(pl);
         }
         if (!document.getElementById('panel-right')) {
             const pr = document.createElement('div');
-            pr.id = 'panel-right';
-            pr.className = 'ultra-panel';
+            pr.id = 'panel-right'; pr.className = 'ultra-panel';
             document.body.appendChild(pr);
         }
         addSocialTiles();
@@ -207,19 +194,13 @@
                 api('/api/v8/vpn/connection/'),
                 api('/api/v4/vpn/connection/')
             ]);
-
             if (!conn.success || !sys.success) return;
-
             const c = conn.result || {};
             const s = sys.result || {};
             const adblockOn = !!(config.success && config.result && config.result.adblock);
             const wifiOn = !!(wifi.success && wifi.result && wifi.result.enabled);
-            const dnsPrimary = (dhcpCfg.success && dhcpCfg.result && dhcpCfg.result.dns && dhcpCfg.result.dns.length)
-                ? dhcpCfg.result.dns[0] : 'Auto';
-            const updateIcon = s.need_reboot
-                ? '<span style="color:#f44336">📥 Redémarrer</span>'
-                : '<span style="color:#4CAF50">✅ À jour</span>';
-
+            const dnsPrimary = (dhcpCfg.success && dhcpCfg.result && dhcpCfg.result.dns && dhcpCfg.result.dns.length) ? dhcpCfg.result.dns[0] : 'Auto';
+            const updateIcon = s.need_reboot ? '<span style="color:#f44336">📥 Redémarrer</span>' : '<span style="color:#4CAF50">✅ À jour</span>';
             const down = fmtRateBytes(c.rate_down);
             const up = fmtRateBytes(c.rate_up);
             const capDown = fmtCapBits(c.bandwidth_down);
@@ -227,15 +208,11 @@
             const state = (c.state || 'n/a').toUpperCase();
             const media = (c.media || '').toUpperCase();
             const linkOk = state === 'UP' || state === 'ACTIVE';
-
             let vpnList = [];
             const vpnSrc = (vpn8.success && Array.isArray(vpn8.result)) ? vpn8 : vpn4;
             if (vpnSrc.success && Array.isArray(vpnSrc.result)) {
-                vpnList = vpnSrc.result.filter(function (x) {
-                    return x && (x.authenticated !== false);
-                });
+                vpnList = vpnSrc.result.filter(function (x) { return x && (x.authenticated !== false); });
             }
-
             const left = document.getElementById('panel-left');
             if (left) {
                 left.innerHTML =
@@ -253,37 +230,28 @@
                     '<div class="stat-label">Débit Montant</div>' +
                     '<div class="stat-value">' + up.v + '<span class="stat-unit">' + up.u + '</span></div>' +
                     '<div class="max-val">Capacité : ' + capUp + '</div>' +
-                    vpnHtml(vpnList) +
                     '<div class="footer-info">' +
                     (media || 'LIEN') + ' : <b style="color:' + (linkOk ? '#0f0' : '#f00') + ';">' + state + '</b>' +
                     (media ? ' (' + media + ')' : '') + '<br>' +
                     'IPv4 : <b style="color:#fff">' + (c.ipv4 || 'N/A') + '</b><br>' +
                     (c.ipv6 ? 'IPv6 : <b style="color:#fff;font-size:10px">' + c.ipv6 + '</b><br>' : '') +
                     'DNS : <b style="color:#00d4ff">' + dnsPrimary + '</b><br>' +
-                    'Adblock : <b style="color:' + (adblockOn ? '#0f0' : '#f00') + '">' + (adblockOn ? 'ACTIF' : 'OFF') + '</b>' +
-                    '</div>';
+                    'Adblock : <b style="color:' + (adblockOn ? '#0f0' : '#f00') + '">' + (adblockOn ? 'ACTIF' : 'OFF') + '</b></div>';
             }
-
             let vmsHtml = '';
             if (vmData.success && Array.isArray(vmData.result) && vmData.result.length) {
                 vmData.result.forEach(function (vm) {
                     const on = vm.status === 'running';
                     vmsHtml += '<div class="vm-card ' + (on ? 'active' : '') + '">' +
-                        '<div style="font-size:11px; font-weight:700;">' +
-                        '<span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
-                        String(vm.name || 'VM').toUpperCase() +
-                        '</div>' +
+                        '<div style="font-size:11px; font-weight:700;"><span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
+                        String(vm.name || 'VM').toUpperCase() + '</div>' +
                         '<div style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-size:13px; font-weight:bold; font-family:monospace; margin-top:3px;">' +
-                        (on ? 'ONLINE' : 'OFFLINE') +
-                        '</div></div>';
+                        (on ? 'ONLINE' : 'OFFLINE') + '</div></div>';
                 });
             } else {
                 vmsHtml = '<div style="font-size:11px;color:#888;margin-top:8px;">Aucune VM</div>';
             }
-
-            let diskTemp = 'N/A';
-            let freeGB = '0';
-            let diskPercent = 0;
+            let diskTemp = 'N/A', freeGB = '0', diskPercent = 0;
             if (diskData.success && diskData.result && diskData.result[0]) {
                 const t = diskData.result[0].temp;
                 diskTemp = (t === 0 || t) ? t + '°C' : 'N/A';
@@ -295,14 +263,8 @@
                     diskPercent = ((p.used_bytes / p.total_bytes) * 100).toFixed(1);
                 }
             }
-            const cpuTemps = [
-                s.temp_cpu0 || s.temp_cpum,
-                s.temp_cpu1 || s.temp_cpum,
-                s.temp_cpu2 || s.temp_cpub,
-                s.temp_cpu3 || s.temp_cpub
-            ];
+            const cpuTemps = [s.temp_cpu0 || s.temp_cpum, s.temp_cpu1 || s.temp_cpum, s.temp_cpu2 || s.temp_cpub, s.temp_cpu3 || s.temp_cpub];
             const fan = Number(s.fan_rpm) || 0;
-
             const right = document.getElementById('panel-right');
             if (right) {
                 right.innerHTML =
@@ -314,8 +276,7 @@
                         return '<div style="width: 48%; margin-bottom: 8px;">' +
                             '<div class="stat-label" style="margin-top:0;">CPU ' + i + '</div>' +
                             '<div class="stat-value" style="font-size:15px; color:' + col + ';">' + val + '°C</div>' +
-                            '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, Number(t) || 0) + '%; background:' + col + ';"></div></div>' +
-                            '</div>';
+                            '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, Number(t) || 0) + '%; background:' + col + ';"></div></div></div>';
                     }).join('') +
                     '</div>' +
                     '<div class="stat-label">NVMe libre</div>' +
@@ -325,7 +286,8 @@
                     '<div class="stat-value" style="font-size:15px;">' + fan + ' RPM</div>' +
                     '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, (fan / 3500) * 100) + '%; background:#888;"></div></div>' +
                     '<div class="stat-label" style="margin-top:15px; border-top:1px solid #333; padding-top:8px;">Serveurs / VMs</div>' +
-                    vmsHtml;
+                    vmsHtml +
+                    '<div style="margin-top:12px;border-top:1px solid #333;padding-top:4px;">' + vpnHtml(vpnList) + '</div>';
             }
         } catch (e) {
             console.error('[Ultra Dashboard]', e);
@@ -335,11 +297,8 @@
     build();
     refresh();
     setInterval(refresh, 5000);
-
     const mo = new MutationObserver(function () {
-        if (!document.getElementById('panel-left') || !document.getElementById('social-tiles-container')) {
-            build();
-        }
+        if (!document.getElementById('panel-left') || !document.getElementById('social-tiles-container')) build();
     });
     mo.observe(document.documentElement, { childList: true, subtree: true });
 })();
