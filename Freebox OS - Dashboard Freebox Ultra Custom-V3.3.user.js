@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.0
-// @description  Dashboard Ultra Custom — panneaux NET/SYS, débits réels, image locale GitHub
+// @version      4.1
+// @description  Dashboard Ultra Custom — NET/SYS + sessions VPN serveur
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
@@ -50,6 +50,23 @@
         return (bps / 1e6).toFixed(0) + ' Mbps';
     }
 
+    function fmtBytes(n) {
+        n = Number(n) || 0;
+        if (n < 1024) return n + ' o';
+        if (n < 1048576) return (n / 1024).toFixed(1) + ' Ko';
+        if (n < 1073741824) return (n / 1048576).toFixed(1) + ' Mo';
+        return (n / 1073741824).toFixed(2) + ' Go';
+    }
+
+    function vpnLabel(vpn) {
+        const v = String(vpn || '').toLowerCase();
+        if (v.indexOf('wireguard') !== -1) return 'WireGuard';
+        if (v.indexOf('openvpn') !== -1) return 'OpenVPN';
+        if (v.indexOf('ipsec') !== -1 || v.indexOf('ike') !== -1) return 'IPsec';
+        if (v.indexOf('pptp') !== -1) return 'PPTP';
+        return vpn || 'VPN';
+    }
+
     async function api(path) {
         try {
             const r = await fetch(path, { credentials: 'same-origin' });
@@ -58,6 +75,28 @@
         } catch (e) {
             return { success: false };
         }
+    }
+
+    function vpnHtml(list) {
+        if (!list.length) {
+            return '<div class="stat-label">VPN serveur</div>' +
+                '<div class="stat-value"><span class="led led-off"></span>PERSONNE</div>';
+        }
+        let h = '<div class="stat-label">VPN serveur</div>' +
+            '<div class="stat-value"><span class="led led-active"></span>' + list.length + ' CONNECTÉ' + (list.length > 1 ? 'S' : '') + '</div>';
+        list.forEach(function (x) {
+            const name = x.user || x.id || 'peer';
+            const proto = vpnLabel(x.vpn || x.type);
+            const src = x.src_ip || '?';
+            const loc = x.local_ip || '';
+            h += '<div class="vpn-card">' +
+                '<div class="vpn-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' + name + '</div>' +
+                '<div class="vpn-meta">' + proto + (x.authenticated === false ? ' · non auth' : '') + '</div>' +
+                '<div class="vpn-meta">src ' + src + (loc ? ' → ' + loc : '') + '</div>' +
+                '<div class="vpn-meta">↓ ' + fmtBytes(x.rx_bytes) + ' · ↑ ' + fmtBytes(x.tx_bytes) + '</div>' +
+                '</div>';
+        });
+        return h;
     }
 
     GM_addStyle(`
@@ -118,6 +157,9 @@
         .led-off { background: #444; }
         .vm-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-top: 10px; border-left: 4px solid #444; }
         .vm-card.active { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
+        .vpn-card { background: rgba(0,212,255,0.06); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #00d4ff; }
+        .vpn-name { font-size: 12px; font-weight: 700; color: #fff; }
+        .vpn-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
         .footer-info { margin-top: 15px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.2); font-size: 11px; line-height: 1.6; color: #ccc; }
     `);
 
@@ -153,7 +195,7 @@
     async function refresh() {
         build();
         try {
-            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData] = await Promise.all([
+            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData, vpn8, vpn4] = await Promise.all([
                 api('/api/v4/connection/'),
                 api('/api/v4/connection/config/'),
                 api('/api/v4/system/'),
@@ -161,7 +203,9 @@
                 api('/api/v4/storage/partition/'),
                 api('/api/v4/wifi/config/'),
                 api('/api/v4/dhcp/config/'),
-                api('/api/v8/vm/')
+                api('/api/v8/vm/'),
+                api('/api/v8/vpn/connection/'),
+                api('/api/v4/vpn/connection/')
             ]);
 
             if (!conn.success || !sys.success) return;
@@ -184,6 +228,14 @@
             const media = (c.media || '').toUpperCase();
             const linkOk = state === 'UP' || state === 'ACTIVE';
 
+            let vpnList = [];
+            const vpnSrc = (vpn8.success && Array.isArray(vpn8.result)) ? vpn8 : vpn4;
+            if (vpnSrc.success && Array.isArray(vpnSrc.result)) {
+                vpnList = vpnSrc.result.filter(function (x) {
+                    return x && (x.authenticated !== false);
+                });
+            }
+
             const left = document.getElementById('panel-left');
             if (left) {
                 left.innerHTML =
@@ -201,6 +253,7 @@
                     '<div class="stat-label">Débit Montant</div>' +
                     '<div class="stat-value">' + up.v + '<span class="stat-unit">' + up.u + '</span></div>' +
                     '<div class="max-val">Capacité : ' + capUp + '</div>' +
+                    vpnHtml(vpnList) +
                     '<div class="footer-info">' +
                     (media || 'LIEN') + ' : <b style="color:' + (linkOk ? '#0f0' : '#f00') + ';">' + state + '</b>' +
                     (media ? ' (' + media + ')' : '') + '<br>' +
