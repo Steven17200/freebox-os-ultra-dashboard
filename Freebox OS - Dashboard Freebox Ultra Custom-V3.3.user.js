@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    http://tampermonkey.net/
-// @version      V3.8
+// @version      V3.9
 // @description  Icônes centrées et abaissées (130px) - Rétablissement total et définitif des fonctions
 // @author       Steven17200 with Gemini 3
 // @icon         https://www.free.fr/favicon.ico
@@ -15,7 +15,7 @@
 
 (function() {
     'use strict';
-    const boxImageUrl = "https://i.postimg.cc/FFLkDLFg/Freebox-Ultra-Stranger-Things-perso.png";
+    const boxImageUrl = "https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Freebox%20Ultra%20Stranger%20Things.png";
     const customBgUrl = "https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/ea85a7f54b61d4398e16004306f07acf7c260713/Fond%20Freebox.svg";
 
     function getTempColor(temp) {
