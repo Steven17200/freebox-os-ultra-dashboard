@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.2
+// @version      4.3
 // @description  Dashboard Ultra Custom — NET/SYS + VPN à droite
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
@@ -120,19 +120,33 @@
         #panel-right { right: 10px !important; border: 1px solid rgba(255, 0, 0, 0.2); }
         #social-tiles-container {
             position: absolute; left: 50%; transform: translateX(-50%);
-            top: 130px; display: flex; gap: 20px; z-index: 10000;
+            top: 128px; display: flex; gap: 26px; z-index: 10000;
+            font-family: Roboto, "Segoe UI", sans-serif;
         }
-        .social-tile { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-decoration: none !important; transition: transform 0.2s; }
-        .social-tile:hover { transform: scale(1.1); }
+        .social-tile { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-decoration: none !important; transition: transform 0.15s; gap: 8px; }
+        .social-tile:hover { transform: scale(1.05); }
         .social-tile .icon-wrapper {
-            width: 50px; height: 50px; background: rgba(0,0,0,0.6);
-            border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 56px; height: 56px; background: #5c5f66;
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
         }
-        .social-tile .icon-wrapper svg { width: 28px; height: 28px; fill: white; display: block; margin: auto; }
-        .white-tile-custom { background: #FFFFFF !important; border: 1.5px solid #000000 !important; }
+        .social-tile .icon-wrapper svg { width: 26px; height: 26px; fill: white; display: block; margin: auto; }
+        .white-tile-custom { background: #ffffff !important; border: none !important; }
         .social-tile img.icon-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .social-tile span { color: white; font-size: 9px; margin-top: 5px; font-weight: bold; text-shadow: 1px 1px 2px black; text-align: center; width: 75px; line-height: 10px; }
+        .social-tile span {
+            color: #1a1a1a;
+            background: #e8e8e8;
+            font-size: 11px;
+            margin-top: 0;
+            font-weight: 500;
+            text-shadow: none;
+            text-align: center;
+            width: auto;
+            max-width: 118px;
+            line-height: 1.25;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
         .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; margin-top: 10px; letter-spacing: 1px; }
         .stat-value { font-size: 17px; font-weight: 700; color: #fff; margin: 1px 0; display: flex; align-items: center; }
         .stat-unit { font-size: 11px; color: #f00; margin-left: 4px; font-weight: 400; }
