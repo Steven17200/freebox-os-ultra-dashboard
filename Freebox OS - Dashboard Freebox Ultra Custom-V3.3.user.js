@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.6
-// @description  Dashboard Ultra Custom — panneaux sans titres ULTRA NET/SYS
+// @version      4.7
+// @description  Dashboard Ultra Custom — VM/VPN sur une ligne, Switch 1-4+SFP
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
@@ -90,8 +90,9 @@
             const src = x.src_ip || '?';
             const loc = x.local_ip || '';
             h += '<div class="vpn-card">' +
-                '<div class="vpn-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' + name + '</div>' +
-                '<div class="vpn-meta">' + proto + (x.authenticated === false ? ' · non auth' : '') + '</div>' +
+                '<div class="vpn-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' +
+                name + ' <span style="font-weight:400;color:#aaa;">· ' + proto +
+                (x.authenticated === false ? ' · non auth' : '') + '</span></div>' +
                 '<div class="vpn-meta">src ' + src + (loc ? ' → ' + loc : '') + '</div>' +
                 '<div class="vpn-meta">↓ ' + fmtBytes(x.rx_bytes) + ' · ↑ ' + fmtBytes(x.tx_bytes) + '</div>' +
                 '</div>';
@@ -129,31 +130,44 @@
     }
 
     function switchHtml(ports) {
-        const want = [1, 2];
-        const byId = {};
-        (ports || []).forEach(function (p) { if (p && p.id != null) byId[p.id] = p; });
-        let h = '<div class="stat-label" style="margin-top:12px;">Switch Ethernet</div>';
-        let any = false;
-        want.forEach(function (id) {
-            const p = byId[id];
+        const list = Array.isArray(ports) ? ports.slice() : [];
+        const eth = [];
+        let sfp = null;
+        list.forEach(function (p) {
             if (!p) return;
-            any = true;
-            const up = String(p.link || '').toLowerCase() === 'up';
-            const label = p.name || ('Switch ' + id);
-            const mode = p.mode || ((p.speed || '?') + (p.duplex ? '-' + p.duplex : ''));
+            const n = String(p.name || '').toLowerCase();
+            if (n.indexOf('sfp') !== -1) sfp = p;
+            else eth.push(p);
+        });
+        eth.sort(function (a, b) {
+            const ai = Number(a.id) || 0, bi = Number(b.id) || 0;
+            return ai - bi;
+        });
+        const rows = [];
+        for (let i = 0; i < 4; i++) {
+            rows.push({ label: 'Switch ' + (i + 1), port: eth[i] || null });
+        }
+        rows.push({ label: 'SFP', port: sfp || list.find(function (p) {
+            return p && eth.indexOf(p) === -1 && String(p.name || '').toLowerCase().indexOf('sfp') !== -1;
+        }) || null });
+
+        let h = '<div class="stat-label" style="margin-top:12px;">Switch Ethernet</div>';
+        rows.forEach(function (row) {
+            const p = row.port;
+            const up = !!(p && String(p.link || '').toLowerCase() === 'up');
+            const mode = p ? (p.mode || ((p.speed || '') + (p.duplex ? '-' + p.duplex : ''))) : '';
             let hosts = '';
-            const ml = p.mac_list;
-            if (Array.isArray(ml) && ml.length) {
-                hosts = ml.map(function (x) { return (x && (x.hostname || x.mac)) || ''; }).filter(Boolean).join(', ');
+            if (p && Array.isArray(p.mac_list) && p.mac_list.length) {
+                hosts = p.mac_list.map(function (x) { return (x && (x.hostname || x.mac)) || ''; }).filter(Boolean).join(', ');
             }
             h += '<div class="sw-card ' + (up ? 'up' : 'down') + '">' +
-                '<div class="sw-name"><span class="led" style="background:' + (up ? '#0f0' : '#444') + ';height:7px;width:7px;"></span>' +
-                label + '</div>' +
-                '<div class="sw-meta">' + (up ? 'UP' : 'DOWN') + (up && mode ? ' · ' + mode : '') + '</div>' +
-                (hosts ? '<div class="sw-meta">' + hosts + '</div>' : (up ? '<div class="sw-meta">lié</div>' : '')) +
+                '<div class="sw-name"><span class="led" style="background:' + (up ? '#0f0' : '#f00') + ';height:7px;width:7px;"></span>' +
+                row.label + (up && mode ? ' <span style="font-weight:400;color:#aaa;">· ' + mode + '</span>' : '') + '</div>' +
+                (hosts ? '<div class="sw-meta">' + hosts + '</div>' : '') +
                 '</div>';
         });
-        return any ? h : '';
+        return h;
+    }
     }
 
 
@@ -224,7 +238,7 @@
         .vm-ip { font-size: 11px; color: #00d4ff; font-family: monospace; margin-top: 4px; }
         .sw-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #888; }
         .sw-card.up { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
-        .sw-card.down { border-left-color: #444; }
+        .sw-card.down { border-left-color: #f00; }
         .sw-name { font-size: 12px; font-weight: 700; color: #fff; }
         .sw-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
         .footer-info { margin-top: 15px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.2); font-size: 11px; line-height: 1.6; color: #ccc; }
@@ -324,10 +338,11 @@
                     const on = vm.status === 'running';
                     const ip = macIp[normMac(vm.mac)] || '';
                     vmsHtml += '<div class="vm-card ' + (on ? 'active' : '') + '">' +
-                        '<div style="font-size:11px; font-weight:700;"><span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
-                        String(vm.name || 'VM').toUpperCase() + '</div>' +
-                        '<div style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-size:13px; font-weight:bold; font-family:monospace; margin-top:3px;">' +
-                        (on ? 'ONLINE' : 'OFFLINE') + '</div>' +
+                        '<div style="font-size:11px; font-weight:700; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">' +
+                        '<span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px; margin-right:0;"></span>' +
+                        '<span>' + String(vm.name || 'VM').toUpperCase() + '</span>' +
+                        '<span style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-size:13px; font-weight:bold; font-family:monospace;">' +
+                        (on ? 'ONLINE' : 'OFFLINE') + '</span></div>' +
                         (ip ? '<div class="vm-ip">IP ' + ip + '</div>' : '') +
                         '</div>';
                 });
