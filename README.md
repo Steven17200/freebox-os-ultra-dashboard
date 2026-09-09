@@ -1,55 +1,33 @@
-## 🛠 Prérequis & Installation
+## Dashboard Freebox Ultra Custom v4.5
 
-### 1. Installer l'extension Tampermonkey
-Pour utiliser ce script, vous devez d'abord installer l'extension **Tampermonkey** sur un navigateur compatible :
-👉 [**Télécharger Tampermonkey (Site Officiel)**](https://www.tampermonkey.net/)
+Panneaux **Ultra NET** / **Ultra SYS** pour Freebox OS : débits, températures, VM Plex (IP), VPN WireGuard, switch 1-4/SFP.
 
-| Navigateur | Compatibilité |
-| :--- | :--- |
-| **Google Chrome** | ✅ Testé & Approuvé |
-| **Microsoft Edge** | ✅ Testé & Approuvé |
-| **Brave** | ✅ Testé & Approuvé |
-| **Mozilla Firefox** | ✅ Compatible |
+### 1. Tampermonkey
+👉 [Télécharger Tampermonkey](https://www.tampermonkey.net/)
 
----
+Chrome / Edge / Brave : activer **Mode développeur** dans `chrome://extensions` puis redémarrer le navigateur.
 
-### 2. Activer le "Mode Développeur" (Indispensable)
-Sur certains navigateurs récents (Chrome, Edge, Brave), vous devez activer le mode développeur pour permettre l'exécution des scripts locaux :
-
-1. Ouvrez l'onglet **Extensions** de votre navigateur (ou tapez `chrome://extensions` dans la barre d'adresse).
-2. En haut à droite, activez l'interrupteur **Mode développeur**.
-3. Redémarrez votre navigateur.
-
----
-
-### 3. Installer le Dashboard Ultra
+### 2. Installer le script
 
 <div align="center">
   <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/Dashboard.png?raw=true" width="800" alt="Aperçu du Dashboard">
-  <p><i>Aperçu des panneaux Ultra Net et Ultra Sys</i></p>
+  <p><i>Aperçu Ultra Net et Ultra Sys</i></p>
 </div>
 
-Une fois Tampermonkey installé, choisissez votre version de la Freebox Ultra "Seule l’image et le nom du script sont différents." :
+* 🚀 **Ultra Custom v4.5** : [👉 Installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Freebox%20OS%20-%20Dashboard%20Freebox%20Ultra%20Custom-V3.3.user.js)
 
-* 🚀 **Version Ultra Classic** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-classic-dashboard.user.js) <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20Classic.png?raw=true" width="62" align="middle">
-* 🚀 **Version Ultra Limited** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-limited-dashboard.user.js) <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/freebox%20limited.png?raw=true" width="85" align="middle">
-* 🚀 **Version Ultra Stranger Things** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/freebox-ultra-Stranger-Things-dashboard.user.js) <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/Freebox%20Ultra%20Stranger%20Things.png?raw=true" width="68" align="middle">
-* 🚀 **Version Ultra Custom V4.5** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Freebox%20OS%20-%20Dashboard%20Freebox%20Ultra%20Custom-V3.3.user.js) <img src="https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Freebox%20Ultra%20Stranger%20Things.png" width="68" align="middle">
 <div align="center">
-  <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/fond%20custom.png?raw=true" width="320" alt="Aperçu du Dashboard">
-  <p><i>Aperçu de la version custom</i></p>
+  <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/fond%20custom.png?raw=true" width="320" alt="Version custom">
 </div>
->**Procédure :** Une page **Tampermonkey** s'ouvrira automatiquement après le clic. Cliquez simplement sur le bouton **"Installer"**.
+
+Tampermonkey s'ouvre → bouton **Installer** → F5 sur `mafreebox.freebox.fr`.
+
+### 3. Optionnel — Auto-login
+
+* ⚡ [Installer Auto-login Freebox OS](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Auto-login-Freebox-OS.user.js)
+  > Éditer le script et remplacer `VOTRE_PASSWORD`.
+
 ---
-#### 🔑 Utilitaires (Optionnel)
-* ⚡ **Auto-login Freebox OS** : [👉 Cliquez ici pour l'installer](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Auto-login-Freebox-OS.user.js)
-  > **Note :** Après l'installation, vous devrez éditer le script dans Tampermonkey pour remplacer `VOTRE_PASSWORD` par votre véritable mot de passe.
 
->**Procédure :** Cliquez sur les liens ci-dessus, puis sur le bouton  **"Installer"** dans la page Tampermonkey qui s'ouvre.
----
-
-## 📚 Ressources & Crédits
-
-* **Documentation Officielle** : Ce projet s'appuie sur le [SDK Freebox OS](https://dev.freebox.fr/sdk/os/) pour l'analyse des API système.
-* **Intelligence Artificielle** : Les scripts de ce dashboard ont été développés ainsi que ce tuto à 99% par **Gemini 3 Flash (Google)**.
-* **Auteur** : [Steven17200](https://github.com/Steven17200)
+* SDK : [dev.freebox.fr/sdk/os](https://dev.freebox.fr/sdk/os/)
+* Auteur : [Steven17200](https://github.com/Steven17200)
