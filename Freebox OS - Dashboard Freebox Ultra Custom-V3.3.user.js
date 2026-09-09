@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.8
+// @version      4.9
 // @description  Dashboard Ultra Custom — VM/VPN 1 ligne + Switch pastilles
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
@@ -231,7 +231,7 @@
         .max-val { font-size: 10px; color: #00d4ff; margin-top: -2px; opacity: 0.9; }
         .gauge-bar { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 5px; overflow: hidden; }
         .gauge-fill { height: 100%; transition: width 1s ease; }
-        .title-h { font-weight:300; margin:0 0 15px 0; font-size:18px; letter-spacing:3px; text-align:center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .title-h { display:none !important; font-weight:300; margin:0 0 15px 0; font-size:18px; letter-spacing:3px; text-align:center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         #box-avatar { width: 100px; margin: 0 auto 15px auto; display: block; filter: drop-shadow(0 0 10px rgba(255,0,0,0.3)); }
         .led { height: 9px; width: 9px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .led-active { background: #00d4ff; box-shadow: 0 0 8px #00d4ff; }
@@ -330,7 +330,6 @@
             const left = document.getElementById('panel-left');
             if (left) {
                 left.innerHTML =
-                    '<h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">NET</span></h1>' +
                     '<img id="box-avatar" src="' + BOX_IMG + '" alt="" onerror="this.classList.add(\'broken\')">' +
                     '<div class="stat-label">Système OS</div>' +
                     '<div style="font-size:11px; margin-bottom:4px;">Version : <b>' + (s.firmware_version || '?') + '</b></div>' +
@@ -384,7 +383,6 @@
             const right = document.getElementById('panel-right');
             if (right) {
                 right.innerHTML =
-                    '<h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">SYS</span></h1>' +
                     '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">' +
                     cpuTemps.map(function (t, i) {
                         const col = tempColor(t);
