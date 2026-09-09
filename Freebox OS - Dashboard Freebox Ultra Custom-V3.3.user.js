@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.7
-// @description  Dashboard Ultra Custom — VM/VPN sur une ligne, Switch 1-4+SFP
+// @version      4.8
+// @description  Dashboard Ultra Custom — VM/VPN 1 ligne + Switch pastilles
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
@@ -91,15 +91,14 @@
             const loc = x.local_ip || '';
             h += '<div class="vpn-card">' +
                 '<div class="vpn-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' +
-                name + ' <span style="font-weight:400;color:#aaa;">· ' + proto +
-                (x.authenticated === false ? ' · non auth' : '') + '</span></div>' +
-                '<div class="vpn-meta">src ' + src + (loc ? ' → ' + loc : '') + '</div>' +
+                name + ' <span class="vpn-proto">' + proto + '</span></div>' +
+                '<div class="vpn-meta">src ' + src + (loc ? ' → ' + loc : '') +
+                (x.authenticated === false ? ' · non auth' : '') + '</div>' +
                 '<div class="vpn-meta">↓ ' + fmtBytes(x.rx_bytes) + ' · ↑ ' + fmtBytes(x.tx_bytes) + '</div>' +
                 '</div>';
         });
         return h;
     }
-
 
     function normMac(m) {
         return String(m || '').toLowerCase().replace(/[^0-9a-f]/g, '');
@@ -129,47 +128,54 @@
         return map;
     }
 
-    function switchHtml(ports) {
-        const list = Array.isArray(ports) ? ports.slice() : [];
-        const eth = [];
-        let sfp = null;
-        list.forEach(function (p) {
-            if (!p) return;
-            const n = String(p.name || '').toLowerCase();
-            if (n.indexOf('sfp') !== -1) sfp = p;
-            else eth.push(p);
-        });
-        eth.sort(function (a, b) {
-            const ai = Number(a.id) || 0, bi = Number(b.id) || 0;
-            return ai - bi;
-        });
-        const rows = [];
-        for (let i = 0; i < 4; i++) {
-            rows.push({ label: 'Switch ' + (i + 1), port: eth[i] || null });
-        }
-        rows.push({ label: 'SFP', port: sfp || list.find(function (p) {
-            return p && eth.indexOf(p) === -1 && String(p.name || '').toLowerCase().indexOf('sfp') !== -1;
-        }) || null });
+    function portShort(id) {
+        const n = Number(id);
+        if (n === 9999) return 'SFP';
+        return String(n);
+    }
 
-        let h = '<div class="stat-label" style="margin-top:12px;">Switch Ethernet</div>';
-        rows.forEach(function (row) {
-            const p = row.port;
-            const up = !!(p && String(p.link || '').toLowerCase() === 'up');
-            const mode = p ? (p.mode || ((p.speed || '') + (p.duplex ? '-' + p.duplex : ''))) : '';
+    function switchHtml(ports, macIp, statsById) {
+        const byId = {};
+        (ports || []).forEach(function (p) { if (p && p.id != null) byId[p.id] = p; });
+        const order = [1, 2, 3, 4, 9999].filter(function (id) { return !!byId[id]; });
+        if (!order.length) return '';
+        let h = '<div class="stat-label" style="margin-top:12px;">Switch</div>';
+        h += '<div class="sw-dots">';
+        order.forEach(function (id) {
+            const up = String(byId[id].link || '').toLowerCase() === 'up';
+            h += '<div class="sw-dot' + (up ? ' up' : '') + '">' +
+                '<span class="led" style="background:' + (up ? '#0f0' : '#f44336') + ';height:8px;width:8px;margin-right:4px;"></span>' +
+                portShort(id) + '</div>';
+        });
+        h += '</div>';
+        order.forEach(function (id) {
+            const p = byId[id];
+            const up = String(p.link || '').toLowerCase() === 'up';
+            if (!up) return;
+            const mode = p.mode || ((p.speed || '') + (p.duplex ? '-' + p.duplex : ''));
+            const st = (statsById && statsById[id]) || {};
+            const rx = fmtRateBytes(st.rx_bytes_rate);
+            const tx = fmtRateBytes(st.tx_bytes_rate);
             let hosts = '';
-            if (p && Array.isArray(p.mac_list) && p.mac_list.length) {
-                hosts = p.mac_list.map(function (x) { return (x && (x.hostname || x.mac)) || ''; }).filter(Boolean).join(', ');
+            const ml = p.mac_list;
+            if (Array.isArray(ml) && ml.length) {
+                hosts = ml.map(function (x) {
+                    const mac = normMac((x && (x.mac || x.id)) || x);
+                    const ip = (macIp && macIp[mac]) || '';
+                    const nm = (x && (x.name || x.hostname)) || '';
+                    return [nm, ip].filter(Boolean).join(' · ') || mac;
+                }).filter(Boolean).join(', ');
             }
-            h += '<div class="sw-card ' + (up ? 'up' : 'down') + '">' +
-                '<div class="sw-name"><span class="led" style="background:' + (up ? '#0f0' : '#f00') + ';height:7px;width:7px;"></span>' +
-                row.label + (up && mode ? ' <span style="font-weight:400;color:#aaa;">· ' + mode + '</span>' : '') + '</div>' +
+            h += '<div class="sw-card up">' +
+                '<div class="sw-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' +
+                (p.name || ('ETH ' + portShort(id))) +
+                (mode ? ' <span class="vpn-proto">' + mode + '</span>' : '') + '</div>' +
                 (hosts ? '<div class="sw-meta">' + hosts + '</div>' : '') +
+                '<div class="sw-meta">↓ ' + rx.v + ' ' + rx.u + ' · ↑ ' + tx.v + ' ' + tx.u + '</div>' +
                 '</div>';
         });
         return h;
     }
-    }
-
 
     GM_addStyle(`
         body, #u-desktop-body {
@@ -225,7 +231,7 @@
         .max-val { font-size: 10px; color: #00d4ff; margin-top: -2px; opacity: 0.9; }
         .gauge-bar { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 5px; overflow: hidden; }
         .gauge-fill { height: 100%; transition: width 1s ease; }
-        .title-h { display:none !important; font-weight:300; margin:0 0 15px 0; font-size:18px; letter-spacing:3px; text-align:center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+        .title-h { font-weight:300; margin:0 0 15px 0; font-size:18px; letter-spacing:3px; text-align:center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         #box-avatar { width: 100px; margin: 0 auto 15px auto; display: block; filter: drop-shadow(0 0 10px rgba(255,0,0,0.3)); }
         .led { height: 9px; width: 9px; border-radius: 50%; display: inline-block; margin-right: 8px; }
         .led-active { background: #00d4ff; box-shadow: 0 0 8px #00d4ff; }
@@ -233,12 +239,17 @@
         .vm-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-top: 10px; border-left: 4px solid #444; }
         .vm-card.active { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
         .vpn-card { background: rgba(0,212,255,0.06); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #00d4ff; }
-        .vpn-name { font-size: 12px; font-weight: 700; color: #fff; }
+        .vpn-name { font-size: 12px; font-weight: 700; color: #fff; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .vpn-proto { font-size: 10px; font-weight: 600; color: #00d4ff; letter-spacing: 0.3px; }
         .vpn-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
-        .vm-ip { font-size: 11px; color: #00d4ff; font-family: monospace; margin-top: 4px; }
+        .vm-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; font-weight: 700; }
+        .vm-ip { font-size: 11px; color: #00d4ff; font-family: monospace; margin-top: 0; }
+        .sw-dots { display: flex; justify-content: space-between; gap: 4px; margin: 6px 0 4px 0; }
+        .sw-dot { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: #888; }
+        .sw-dot.up { color: #fff; }
         .sw-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #888; }
         .sw-card.up { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
-        .sw-card.down { border-left-color: #f00; }
+        .sw-card.down { border-left-color: #444; }
         .sw-name { font-size: 12px; font-weight: 700; color: #fff; }
         .sw-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
         .footer-info { margin-top: 15px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.2); font-size: 11px; line-height: 1.6; color: #ccc; }
@@ -289,6 +300,14 @@
                 api('/api/v4/switch/status/')
             ]);
             const macIp = buildMacIpMap((lanHosts.success && Array.isArray(lanHosts.result)) ? lanHosts.result : []);
+            const swPorts = (swStatus.success && Array.isArray(swStatus.result)) ? swStatus.result : [];
+            const statsById = {};
+            await Promise.all(swPorts.filter(function (p) {
+                return p && String(p.link || '').toLowerCase() === 'up';
+            }).map(async function (p) {
+                const st = await api('/api/v4/switch/port/' + p.id + '/stats');
+                if (st.success && st.result) statsById[p.id] = st.result;
+            }));
             if (!conn.success || !sys.success) return;
             const c = conn.result || {};
             const s = sys.result || {};
@@ -311,6 +330,7 @@
             const left = document.getElementById('panel-left');
             if (left) {
                 left.innerHTML =
+                    '<h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">NET</span></h1>' +
                     '<img id="box-avatar" src="' + BOX_IMG + '" alt="" onerror="this.classList.add(\'broken\')">' +
                     '<div class="stat-label">Système OS</div>' +
                     '<div style="font-size:11px; margin-bottom:4px;">Version : <b>' + (s.firmware_version || '?') + '</b></div>' +
@@ -336,15 +356,13 @@
             if (vmData.success && Array.isArray(vmData.result) && vmData.result.length) {
                 vmData.result.forEach(function (vm) {
                     const on = vm.status === 'running';
-                    const ip = macIp[normMac(vm.mac)] || '';
+                    const ip = macIp[normMac(vm.mac || vm.mac_address)] || (String(vm.name || '').toLowerCase().indexOf('plex') !== -1 ? '192.168.1.100' : '');
                     vmsHtml += '<div class="vm-card ' + (on ? 'active' : '') + '">' +
-                        '<div style="font-size:11px; font-weight:700; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">' +
-                        '<span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px; margin-right:0;"></span>' +
-                        '<span>' + String(vm.name || 'VM').toUpperCase() + '</span>' +
-                        '<span style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-size:13px; font-weight:bold; font-family:monospace;">' +
-                        (on ? 'ONLINE' : 'OFFLINE') + '</span></div>' +
-                        (ip ? '<div class="vm-ip">IP ' + ip + '</div>' : '') +
-                        '</div>';
+                        '<div class="vm-line"><span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
+                        String(vm.name || 'VM').toUpperCase() +
+                        '<span style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-family:monospace;">' + (on ? 'ONLINE' : 'OFFLINE') + '</span>' +
+                        (ip ? '<span class="vm-ip">' + ip + '</span>' : '') +
+                        '</div></div>';
                 });
             } else {
                 vmsHtml = '<div style="font-size:11px;color:#888;margin-top:8px;">Aucune VM</div>';
@@ -366,6 +384,7 @@
             const right = document.getElementById('panel-right');
             if (right) {
                 right.innerHTML =
+                    '<h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">SYS</span></h1>' +
                     '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">' +
                     cpuTemps.map(function (t, i) {
                         const col = tempColor(t);
@@ -373,7 +392,7 @@
                         return '<div style="width: 48%; margin-bottom: 8px;">' +
                             '<div class="stat-label" style="margin-top:0;">CPU ' + i + '</div>' +
                             '<div class="stat-value" style="font-size:15px; color:' + col + ';">' + val + '°C</div>' +
-                            '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, Number(t) || 0) + '%; background:' + col + ';"></div></div></div>';
+                            '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, Number(t) || 0) + '%; background:' + col + ';"></div></div>';
                     }).join('') +
                     '</div>' +
                     '<div class="stat-label">NVMe libre</div>' +
@@ -385,7 +404,7 @@
                     '<div class="stat-label" style="margin-top:15px; border-top:1px solid #333; padding-top:8px;">Serveurs / VMs</div>' +
                     vmsHtml +
                     '<div style="margin-top:12px;border-top:1px solid #333;padding-top:4px;">' + vpnHtml(vpnList) + '</div>' +
-                    ((swStatus.success && Array.isArray(swStatus.result)) ? switchHtml(swStatus.result) : '');
+                    switchHtml(swPorts, macIp, statsById);
             }
         } catch (e) {
             console.error('[Ultra Dashboard]', e);
