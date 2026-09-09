@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.4
-// @description  Dashboard Ultra Custom — NET/SYS + IP VMs + Switch 1/2
+// @version      4.5
+// @description  Dashboard Ultra Custom — VM/VPN 1 ligne + Switch pastilles
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
@@ -90,15 +90,15 @@
             const src = x.src_ip || '?';
             const loc = x.local_ip || '';
             h += '<div class="vpn-card">' +
-                '<div class="vpn-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' + name + '</div>' +
-                '<div class="vpn-meta">' + proto + (x.authenticated === false ? ' · non auth' : '') + '</div>' +
-                '<div class="vpn-meta">src ' + src + (loc ? ' → ' + loc : '') + '</div>' +
+                '<div class="vpn-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' +
+                name + ' <span class="vpn-proto">' + proto + '</span></div>' +
+                '<div class="vpn-meta">src ' + src + (loc ? ' → ' + loc : '') +
+                (x.authenticated === false ? ' · non auth' : '') + '</div>' +
                 '<div class="vpn-meta">↓ ' + fmtBytes(x.rx_bytes) + ' · ↑ ' + fmtBytes(x.tx_bytes) + '</div>' +
                 '</div>';
         });
         return h;
     }
-
 
     function normMac(m) {
         return String(m || '').toLowerCase().replace(/[^0-9a-f]/g, '');
@@ -128,34 +128,54 @@
         return map;
     }
 
-    function switchHtml(ports) {
-        const want = [1, 2];
+    function portShort(id) {
+        const n = Number(id);
+        if (n === 9999) return 'SFP';
+        return String(n);
+    }
+
+    function switchHtml(ports, macIp, statsById) {
         const byId = {};
         (ports || []).forEach(function (p) { if (p && p.id != null) byId[p.id] = p; });
-        let h = '<div class="stat-label" style="margin-top:12px;">Switch Ethernet</div>';
-        let any = false;
-        want.forEach(function (id) {
+        const order = [1, 2, 3, 4, 9999].filter(function (id) { return !!byId[id]; });
+        if (!order.length) return '';
+        let h = '<div class="stat-label" style="margin-top:12px;">Switch</div>';
+        h += '<div class="sw-dots">';
+        order.forEach(function (id) {
+            const up = String(byId[id].link || '').toLowerCase() === 'up';
+            h += '<div class="sw-dot' + (up ? ' up' : '') + '">' +
+                '<span class="led" style="background:' + (up ? '#0f0' : '#f44336') + ';height:8px;width:8px;margin-right:4px;"></span>' +
+                portShort(id) + '</div>';
+        });
+        h += '</div>';
+        order.forEach(function (id) {
             const p = byId[id];
-            if (!p) return;
-            any = true;
             const up = String(p.link || '').toLowerCase() === 'up';
-            const label = p.name || ('Switch ' + id);
-            const mode = p.mode || ((p.speed || '?') + (p.duplex ? '-' + p.duplex : ''));
+            if (!up) return;
+            const mode = p.mode || ((p.speed || '') + (p.duplex ? '-' + p.duplex : ''));
+            const st = (statsById && statsById[id]) || {};
+            const rx = fmtRateBytes(st.rx_bytes_rate);
+            const tx = fmtRateBytes(st.tx_bytes_rate);
             let hosts = '';
             const ml = p.mac_list;
             if (Array.isArray(ml) && ml.length) {
-                hosts = ml.map(function (x) { return (x && (x.hostname || x.mac)) || ''; }).filter(Boolean).join(', ');
+                hosts = ml.map(function (x) {
+                    const mac = normMac((x && (x.mac || x.id)) || x);
+                    const ip = (macIp && macIp[mac]) || '';
+                    const nm = (x && (x.name || x.hostname)) || '';
+                    return [nm, ip].filter(Boolean).join(' · ') || mac;
+                }).filter(Boolean).join(', ');
             }
-            h += '<div class="sw-card ' + (up ? 'up' : 'down') + '">' +
-                '<div class="sw-name"><span class="led" style="background:' + (up ? '#0f0' : '#444') + ';height:7px;width:7px;"></span>' +
-                label + '</div>' +
-                '<div class="sw-meta">' + (up ? 'UP' : 'DOWN') + (up && mode ? ' · ' + mode : '') + '</div>' +
-                (hosts ? '<div class="sw-meta">' + hosts + '</div>' : (up ? '<div class="sw-meta">lié</div>' : '')) +
+            h += '<div class="sw-card up">' +
+                '<div class="sw-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' +
+                (p.name || ('ETH ' + portShort(id))) +
+                (mode ? ' <span class="vpn-proto">' + mode + '</span>' : '') + '</div>' +
+                (hosts ? '<div class="sw-meta">' + hosts + '</div>' : '') +
+                '<div class="sw-meta">↓ ' + rx.v + ' ' + rx.u + ' · ↑ ' + tx.v + ' ' + tx.u + '</div>' +
                 '</div>';
         });
-        return any ? h : '';
+        return h;
     }
-
 
     GM_addStyle(`
         body, #u-desktop-body {
@@ -219,9 +239,14 @@
         .vm-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-top: 10px; border-left: 4px solid #444; }
         .vm-card.active { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
         .vpn-card { background: rgba(0,212,255,0.06); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #00d4ff; }
-        .vpn-name { font-size: 12px; font-weight: 700; color: #fff; }
+        .vpn-name { font-size: 12px; font-weight: 700; color: #fff; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .vpn-proto { font-size: 10px; font-weight: 600; color: #00d4ff; letter-spacing: 0.3px; }
         .vpn-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
-        .vm-ip { font-size: 11px; color: #00d4ff; font-family: monospace; margin-top: 4px; }
+        .vm-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; font-weight: 700; }
+        .vm-ip { font-size: 11px; color: #00d4ff; font-family: monospace; margin-top: 0; }
+        .sw-dots { display: flex; justify-content: space-between; gap: 4px; margin: 6px 0 4px 0; }
+        .sw-dot { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: #888; }
+        .sw-dot.up { color: #fff; }
         .sw-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #888; }
         .sw-card.up { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
         .sw-card.down { border-left-color: #444; }
@@ -275,6 +300,14 @@
                 api('/api/v4/switch/status/')
             ]);
             const macIp = buildMacIpMap((lanHosts.success && Array.isArray(lanHosts.result)) ? lanHosts.result : []);
+            const swPorts = (swStatus.success && Array.isArray(swStatus.result)) ? swStatus.result : [];
+            const statsById = {};
+            await Promise.all(swPorts.filter(function (p) {
+                return p && String(p.link || '').toLowerCase() === 'up';
+            }).map(async function (p) {
+                const st = await api('/api/v4/switch/port/' + p.id + '/stats');
+                if (st.success && st.result) statsById[p.id] = st.result;
+            }));
             if (!conn.success || !sys.success) return;
             const c = conn.result || {};
             const s = sys.result || {};
@@ -323,14 +356,13 @@
             if (vmData.success && Array.isArray(vmData.result) && vmData.result.length) {
                 vmData.result.forEach(function (vm) {
                     const on = vm.status === 'running';
-                    const ip = macIp[normMac(vm.mac)] || '';
+                    const ip = macIp[normMac(vm.mac || vm.mac_address)] || (String(vm.name || '').toLowerCase().indexOf('plex') !== -1 ? '192.168.1.100' : '');
                     vmsHtml += '<div class="vm-card ' + (on ? 'active' : '') + '">' +
-                        '<div style="font-size:11px; font-weight:700;"><span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
-                        String(vm.name || 'VM').toUpperCase() + '</div>' +
-                        '<div style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-size:13px; font-weight:bold; font-family:monospace; margin-top:3px;">' +
-                        (on ? 'ONLINE' : 'OFFLINE') + '</div>' +
-                        (ip ? '<div class="vm-ip">IP ' + ip + '</div>' : '') +
-                        '</div>';
+                        '<div class="vm-line"><span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
+                        String(vm.name || 'VM').toUpperCase() +
+                        '<span style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-family:monospace;">' + (on ? 'ONLINE' : 'OFFLINE') + '</span>' +
+                        (ip ? '<span class="vm-ip">' + ip + '</span>' : '') +
+                        '</div></div>';
                 });
             } else {
                 vmsHtml = '<div style="font-size:11px;color:#888;margin-top:8px;">Aucune VM</div>';
@@ -372,7 +404,7 @@
                     '<div class="stat-label" style="margin-top:15px; border-top:1px solid #333; padding-top:8px;">Serveurs / VMs</div>' +
                     vmsHtml +
                     '<div style="margin-top:12px;border-top:1px solid #333;padding-top:4px;">' + vpnHtml(vpnList) + '</div>' +
-                    ((swStatus.success && Array.isArray(swStatus.result)) ? switchHtml(swStatus.result) : '');
+                    switchHtml(swPorts, macIp, statsById);
             }
         } catch (e) {
             console.error('[Ultra Dashboard]', e);
