@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Freebox OS - Dashboard Freebox Ultra Custom
 // @namespace    https://github.com/Steven17200/freebox-os-ultra-dashboard
-// @version      4.3
-// @description  Dashboard Ultra Custom — NET/SYS + VPN à droite
+// @version      4.4
+// @description  Dashboard Ultra Custom — NET/SYS + VPN + Switch + IP VM
 // @author       Steven17200
 // @icon         https://www.free.fr/favicon.ico
 // @match        http://mafreebox.freebox.fr/*
@@ -56,6 +56,80 @@
         if (n < 1048576) return (n / 1024).toFixed(1) + ' Ko';
         if (n < 1073741824) return (n / 1048576).toFixed(1) + ' Mo';
         return (n / 1073741824).toFixed(2) + ' Go';
+    }
+
+    function portLabel(id) {
+        const n = Number(id);
+        if (n === 9999) return 'SFP';
+        if (n >= 1 && n <= 4) return 'ETH ' + n;
+        return 'PORT ' + id;
+    }
+
+    function normMac(m) {
+        return String(m || '').toLowerCase().replace(/-/g, ':');
+    }
+
+    function buildMacIpMap(lanHosts, leases) {
+        const map = {};
+        (leases || []).forEach(function (l) {
+            if (!l || !l.mac || !l.ip) return;
+            map[normMac(l.mac)] = { ip: l.ip, name: l.hostname || l.host_name || '' };
+        });
+        (lanHosts || []).forEach(function (h) {
+            if (!h) return;
+            const l2s = h.l2ident ? (Array.isArray(h.l2ident) ? h.l2ident : [h.l2ident]) : [];
+            const macs = [];
+            l2s.forEach(function (x) {
+                if (x && x.id) macs.push(normMac(x.id));
+            });
+            if (h.id && String(h.id).indexOf('ether-') === 0) macs.push(normMac(String(h.id).slice(6)));
+            let ip = '';
+            (h.l3connectivities || []).forEach(function (l3) {
+                if (!l3 || !l3.addr) return;
+                const af = String(l3.af || l3.addr_type || '').toLowerCase();
+                if (af.indexOf('ipv4') !== -1 && l3.active !== false) ip = l3.addr;
+            });
+            const name = h.primary_name || '';
+            macs.forEach(function (m) {
+                if (!m) return;
+                const prev = map[m] || {};
+                map[m] = { ip: ip || prev.ip || '', name: name || prev.name || '' };
+            });
+        });
+        return map;
+    }
+
+    function switchHtml(ports, statsById, macIp) {
+        if (!ports.length) {
+            return '<div class="stat-label">Switch</div>' +
+                '<div style="font-size:11px;color:#888;margin-top:4px;">API switch indisponible</div>';
+        }
+        ports = ports.slice().sort(function (a, b) { return Number(a.id) - Number(b.id); });
+        let h = '<div class="stat-label">Switch</div>';
+        ports.forEach(function (p) {
+            const up = String(p.link || '').toLowerCase() === 'up';
+            const st = statsById[p.id] || {};
+            const rx = fmtRateBytes(st.rx_bytes_rate);
+            const tx = fmtRateBytes(st.tx_bytes_rate);
+            const hosts = Array.isArray(p.mac_list) ? p.mac_list : [];
+            let hostLine = 'aucun hôte';
+            if (hosts.length) {
+                hostLine = hosts.map(function (x) {
+                    const mac = normMac(x.mac || x);
+                    const info = macIp[mac] || {};
+                    const nm = x.name || info.name || '';
+                    const ip = info.ip || '';
+                    return (nm ? nm + ' · ' : '') + (ip || mac);
+                }).join('<br>');
+            }
+            h += '<div class="sw-card' + (up ? ' up' : '') + '">' +
+                '<div class="sw-head"><span><span class="led ' + (up ? 'led-active' : 'led-off') + '"></span>' +
+                portLabel(p.id) + '</span><span style="color:' + (up ? '#0f0' : '#888') + ';">' + (up ? 'ON' : 'OFF') + '</span></div>' +
+                '<div class="sw-meta">' + (p.mode || (up ? (p.speed || '') + ' ' + (p.duplex || '') : '—')) + '</div>' +
+                (up ? '<div class="sw-meta">↓ ' + rx.v + ' ' + rx.u + ' · ↑ ' + tx.v + ' ' + tx.u + '</div>' : '') +
+                '<div class="sw-meta">' + hostLine + '</div></div>';
+        });
+        return h;
     }
 
     function vpnLabel(vpn) {
@@ -130,6 +204,9 @@
             border-radius: 16px; display: flex; align-items: center; justify-content: center;
             overflow: hidden; border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
         }
+        .social-tile .icon-wrapper.svg-tile { background: #5c5f66; }
+        .social-tile .icon-wrapper.svg-tile svg { width: 26px; height: 26px; fill: #fff; display: block; margin: auto; }
+        .social-tile .icon-wrapper.svg { width: 26px; height: 26px; fill: white; display: block; margin: auto; }
         .social-tile .icon-wrapper svg { width: 26px; height: 26px; fill: white; display: block; margin: auto; }
         .white-tile-custom { background: #ffffff !important; border: none !important; }
         .social-tile img.icon-img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -163,6 +240,11 @@
         .vpn-card { background: rgba(0,212,255,0.06); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #00d4ff; }
         .vpn-name { font-size: 12px; font-weight: 700; color: #fff; }
         .vpn-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
+        .vm-meta { font-size: 10px; color: #00d4ff; margin-top: 3px; font-family: monospace; }
+        .sw-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 7px 9px; margin-top: 6px; border-left: 3px solid #444; }
+        .sw-card.up { border-left-color: #00d4ff; background: rgba(0,212,255,0.06); }
+        .sw-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 700; }
+        .sw-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
         .footer-info { margin-top: 15px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.2); font-size: 11px; line-height: 1.6; color: #ccc; }
     `);
 
@@ -196,7 +278,7 @@
     async function refresh() {
         build();
         try {
-            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData, vpn8, vpn4] = await Promise.all([
+            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData, vpn8, vpn4, swStatus, lanPub, dhcpDyn, dhcpStatic] = await Promise.all([
                 api('/api/v4/connection/'),
                 api('/api/v4/connection/config/'),
                 api('/api/v4/system/'),
@@ -206,7 +288,11 @@
                 api('/api/v4/dhcp/config/'),
                 api('/api/v8/vm/'),
                 api('/api/v8/vpn/connection/'),
-                api('/api/v4/vpn/connection/')
+                api('/api/v4/vpn/connection/'),
+                api('/api/v4/switch/status/'),
+                api('/api/v4/lan/browser/pub/'),
+                api('/api/v4/dhcp/dynamic_lease/'),
+                api('/api/v4/dhcp/static_lease/')
             ]);
             if (!conn.success || !sys.success) return;
             const c = conn.result || {};
@@ -227,6 +313,17 @@
             if (vpnSrc.success && Array.isArray(vpnSrc.result)) {
                 vpnList = vpnSrc.result.filter(function (x) { return x && (x.authenticated !== false); });
             }
+            const lanHosts = (lanPub.success && Array.isArray(lanPub.result)) ? lanPub.result : [];
+            const leases = []
+                .concat((dhcpDyn.success && Array.isArray(dhcpDyn.result)) ? dhcpDyn.result : [])
+                .concat((dhcpStatic.success && Array.isArray(dhcpStatic.result)) ? dhcpStatic.result : []);
+            const macIp = buildMacIpMap(lanHosts, leases);
+            const ports = (swStatus.success && Array.isArray(swStatus.result)) ? swStatus.result : [];
+            const statsById = {};
+            await Promise.all(ports.map(async function (p) {
+                const st = await api('/api/v4/switch/port/' + p.id + '/stats');
+                if (st.success && st.result) statsById[p.id] = st.result;
+            }));
             const left = document.getElementById('panel-left');
             if (left) {
                 left.innerHTML =
@@ -256,11 +353,16 @@
             if (vmData.success && Array.isArray(vmData.result) && vmData.result.length) {
                 vmData.result.forEach(function (vm) {
                     const on = vm.status === 'running';
+                    const vmMac = normMac(vm.mac || vm.mac_address);
+                    const vmInfo = vmMac ? (macIp[vmMac] || {}) : {};
+                    const vmIp = vm.ipv4 || vm.ip || vmInfo.ip || (String(vm.name || '').toLowerCase().indexOf('plex') !== -1 ? '192.168.1.100' : '');
                     vmsHtml += '<div class="vm-card ' + (on ? 'active' : '') + '">' +
                         '<div style="font-size:11px; font-weight:700;"><span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
                         String(vm.name || 'VM').toUpperCase() + '</div>' +
                         '<div style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-size:13px; font-weight:bold; font-family:monospace; margin-top:3px;">' +
-                        (on ? 'ONLINE' : 'OFFLINE') + '</div></div>';
+                        (on ? 'ONLINE' : 'OFFLINE') + '</div>' +
+                        (vmIp ? '<div class="vm-meta">IP ' + vmIp + '</div>' : '') +
+                        '</div>';
                 });
             } else {
                 vmsHtml = '<div style="font-size:11px;color:#888;margin-top:8px;">Aucune VM</div>';
@@ -301,7 +403,8 @@
                     '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, (fan / 3500) * 100) + '%; background:#888;"></div></div>' +
                     '<div class="stat-label" style="margin-top:15px; border-top:1px solid #333; padding-top:8px;">Serveurs / VMs</div>' +
                     vmsHtml +
-                    '<div style="margin-top:12px;border-top:1px solid #333;padding-top:4px;">' + vpnHtml(vpnList) + '</div>';
+                    '<div style="margin-top:12px;border-top:1px solid #333;padding-top:4px;">' + vpnHtml(vpnList) + '</div>' +
+                    '<div style="margin-top:12px;border-top:1px solid #333;padding-top:4px;">' + switchHtml(ports, statsById, macIp) + '</div>';
             }
         } catch (e) {
             console.error('[Ultra Dashboard]', e);
