@@ -2,7 +2,7 @@
 
 Dashboard Tampermonkey pour Freebox OS : débits, températures CPU/NVMe, ventilation, VMs (IP), VPN WireGuard, switch 1–4 / SFP.
 
-**Version actuelle : 4.6**
+**Version actuelle : 5.0**
 - Titres plus petits (ULTRA NET 13px)
 - Panneau droit sans titre **ULTRA SYS** (CPU en haut directement)
 - CPU / NVMe / ventilation en 12px
@@ -19,7 +19,7 @@ Chrome / Edge / Brave : activer **Mode développeur** dans `chrome://extensions`
   <p><i>Aperçu du dashboard Custom</i></p>
 </div>
 
-* 🚀 **Ultra Custom v4.6** : [👉 Installer / Mettre à jour](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Freebox%20OS%20-%20Dashboard%20Freebox%20Ultra%20Custom-V3.3.user.js)
+* 🚀 **Ultra Custom v5.0** : [👉 Installer / Mettre à jour](https://github.com/Steven17200/freebox-os-ultra-dashboard/raw/refs/heads/main/Freebox%20OS%20-%20Dashboard%20Freebox%20Ultra%20Custom-V3.3.user.js)
 
 <div align="center">
   <img src="https://github.com/Steven17200/freebox-os-ultra-dashboard/blob/main/fond%20custom.png?raw=true" width="320" alt="Version custom">
