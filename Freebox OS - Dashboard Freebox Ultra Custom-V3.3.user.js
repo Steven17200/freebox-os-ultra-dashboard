@@ -16,3 +16,405 @@
 // @connect      raw.githubusercontent.com
 // @connect      github.com
 // ==/UserScript==
+
+(function () {
+    'use strict';
+
+    const BOX_IMG = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Freebox%20Ultra%20Stranger%20Things.png';
+    const BG_IMG = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Fond%20Freebox.svg';
+    const ICON_FREEBOX = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/free-app-logo.png';
+    const ICON_MOBILE = 'https://raw.githubusercontent.com/Steven17200/freebox-os-ultra-dashboard/main/Free_mobile-app-logo.png';
+    const ICON_UF = 'https://www.universfreebox.com/favicon.ico';
+
+    const X_SVG = '<svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>';
+
+    function tempColor(t) {
+        const n = Number(t);
+        if (!Number.isFinite(n)) return '#888';
+        if (n < 63) return '#4CAF50';
+        if (n <= 69) return '#FF9800';
+        return '#F44336';
+    }
+
+    function fmtRateBytes(bytesPerSec) {
+        const mbps = (Number(bytesPerSec) || 0) / 125000;
+        if (mbps >= 1000) return { v: (mbps / 1000).toFixed(2), u: 'Gbps' };
+        return { v: mbps.toFixed(1), u: 'Mbps' };
+    }
+
+    function fmtCapBits(bitsPerSec) {
+        const bps = Number(bitsPerSec) || 0;
+        if (bps <= 0) return 'n/a';
+        const gbps = bps / 1e9;
+        if (gbps >= 1) return gbps.toFixed(1) + ' Gbps';
+        return (bps / 1e6).toFixed(0) + ' Mbps';
+    }
+
+    function fmtBytes(n) {
+        n = Number(n) || 0;
+        if (n < 1024) return n + ' o';
+        if (n < 1048576) return (n / 1024).toFixed(1) + ' Ko';
+        if (n < 1073741824) return (n / 1048576).toFixed(1) + ' Mo';
+        return (n / 1073741824).toFixed(2) + ' Go';
+    }
+
+    function vpnLabel(vpn) {
+        const v = String(vpn || '').toLowerCase();
+        if (v.indexOf('wireguard') !== -1) return 'WireGuard';
+        if (v.indexOf('openvpn') !== -1) return 'OpenVPN';
+        if (v.indexOf('ipsec') !== -1 || v.indexOf('ike') !== -1) return 'IPsec';
+        if (v.indexOf('pptp') !== -1) return 'PPTP';
+        return vpn || 'VPN';
+    }
+
+    async function api(path) {
+        try {
+            const r = await fetch(path, { credentials: 'same-origin' });
+            if (!r.ok) return { success: false };
+            return await r.json();
+        } catch (e) {
+            return { success: false };
+        }
+    }
+
+    function vpnHtml(list) {
+        if (!list.length) {
+            return '<div class="stat-label">VPN serveur</div>' +
+                '<div class="stat-value"><span class="led led-off"></span>PERSONNE</div>';
+        }
+        let h = '<div class="stat-label">VPN serveur</div>' +
+            '<div class="stat-value"><span class="led led-active"></span>' + list.length + ' CONNECT\u00c9' + (list.length > 1 ? 'S' : '') + '</div>';
+        list.forEach(function (x) {
+            const name = x.user || x.id || 'peer';
+            const proto = vpnLabel(x.vpn || x.type);
+            const src = x.src_ip || '?';
+            const loc = x.local_ip || '';
+            h += '<div class="vpn-card">' +
+                '<div class="vpn-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' +
+                name + ' <span class="vpn-proto">' + proto + '</span></div>' +
+                '<div class="vpn-meta">src ' + src + (loc ? ' \u2192 ' + loc : '') +
+                (x.authenticated === false ? ' \u00b7 non auth' : '') + '</div>' +
+                '<div class="vpn-meta">\u2193 ' + fmtBytes(x.rx_bytes) + ' \u00b7 \u2191 ' + fmtBytes(x.tx_bytes) + '</div>' +
+                '</div>';
+        });
+        return h;
+    }
+
+    function normMac(m) {
+        return String(m || '').toLowerCase().replace(/[^0-9a-f]/g, '');
+    }
+
+    function ipv4FromHost(host) {
+        const list = (host && host.l3connectivities) || [];
+        let fallback = '';
+        for (let i = 0; i < list.length; i++) {
+            const c = list[i];
+            if (!c || c.af !== 'ipv4' || !c.addr) continue;
+            if (c.active && c.reachable) return c.addr;
+            if (c.active && !fallback) fallback = c.addr;
+            if (!fallback) fallback = c.addr;
+        }
+        return fallback;
+    }
+
+    function buildMacIpMap(hosts) {
+        const map = {};
+        (hosts || []).forEach(function (h) {
+            const mac = normMac((h.l2ident && h.l2ident.id) || '');
+            if (!mac) return;
+            const ip = ipv4FromHost(h);
+            if (ip) map[mac] = ip;
+        });
+        return map;
+    }
+
+    function portShort(id) {
+        const n = Number(id);
+        if (n === 9999) return 'SFP';
+        return String(n);
+    }
+
+    function switchHtml(ports, macIp, statsById) {
+        const byId = {};
+        (ports || []).forEach(function (p) { if (p && p.id != null) byId[p.id] = p; });
+        const order = [1, 2, 3, 4, 9999].filter(function (id) { return !!byId[id]; });
+        if (!order.length) return '';
+        let h = '<div class="stat-label" style="margin-top:12px;">Switch</div>';
+        h += '<div class="sw-dots">';
+        order.forEach(function (id) {
+            const up = String(byId[id].link || '').toLowerCase() === 'up';
+            h += '<div class="sw-dot' + (up ? ' up' : '') + '">' +
+                '<span class="led" style="background:' + (up ? '#0f0' : '#f44336') + ';height:8px;width:8px;margin-right:4px;"></span>' +
+                portShort(id) + '</div>';
+        });
+        h += '</div>';
+        order.forEach(function (id) {
+            const p = byId[id];
+            const up = String(p.link || '').toLowerCase() === 'up';
+            if (!up) return;
+            const mode = p.mode || ((p.speed || '') + (p.duplex ? '-' + p.duplex : ''));
+            const st = (statsById && statsById[id]) || {};
+            const rx = fmtRateBytes(st.rx_bytes_rate);
+            const tx = fmtRateBytes(st.tx_bytes_rate);
+            let hosts = '';
+            const ml = p.mac_list;
+            if (Array.isArray(ml) && ml.length) {
+                hosts = ml.map(function (x) {
+                    const mac = normMac((x && (x.mac || x.id)) || x);
+                    const ip = (macIp && macIp[mac]) || '';
+                    const nm = (x && (x.name || x.hostname)) || '';
+                    return [nm, ip].filter(Boolean).join(' \u00b7 ') || mac;
+                }).filter(Boolean).join(', ');
+            }
+            h += '<div class="sw-card up">' +
+                '<div class="sw-name"><span class="led" style="background:#0f0;height:7px;width:7px;"></span>' +
+                (p.name || ('ETH ' + portShort(id))) +
+                (mode ? ' <span class="vpn-proto">' + mode + '</span>' : '') + '</div>' +
+                (hosts ? '<div class="sw-meta">' + hosts + '</div>' : '') +
+                '<div class="sw-meta">\u2193 ' + rx.v + ' ' + rx.u + ' \u00b7 \u2191 ' + tx.v + ' ' + tx.u + '</div>' +
+                '</div>';
+        });
+        return h;
+    }
+
+    GM_addStyle(`
+        body, #u-desktop-body {
+            background-image: url("${BG_IMG}") !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-attachment: fixed !important;
+        }
+        #u-desktop-body img[src*="bg_freeboxos.svg"], .fbx-os-logo { display: none !important; }
+        img#box-avatar.broken { display: none !important; }
+        .ultra-panel {
+            position: absolute;
+            top: 30px; bottom: 80px; width: 280px;
+            background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(20px);
+            border-radius: 25px; border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px; color: white; font-family: 'Roboto', sans-serif; z-index: 9999;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); overflow-y: auto;
+        }
+        #panel-left { left: 10px !important; }
+        #panel-right { right: 10px !important; border: 1px solid rgba(255, 0, 0, 0.2); }
+        #social-tiles-container {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            top: 128px; display: flex; gap: 26px; z-index: 10000;
+            font-family: Roboto, "Segoe UI", sans-serif;
+        }
+        .social-tile { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-decoration: none !important; transition: transform 0.15s; gap: 8px; }
+        .social-tile:hover { transform: scale(1.05); }
+        .social-tile .icon-wrapper {
+            width: 56px; height: 56px; background: #5c5f66;
+            border-radius: 16px; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+        }
+        .social-tile .icon-wrapper svg { width: 26px; height: 26px; fill: white; display: block; margin: auto; }
+        .white-tile-custom { background: #ffffff !important; border: none !important; }
+        .social-tile img.icon-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .social-tile span {
+            color: #1a1a1a;
+            background: #e8e8e8;
+            font-size: 11px;
+            margin-top: 0;
+            font-weight: 500;
+            text-shadow: none;
+            text-align: center;
+            width: auto;
+            max-width: 118px;
+            line-height: 1.25;
+            padding: 5px 10px;
+            border-radius: 8px;
+        }
+        .stat-label { font-size: 10px; color: #aaa; text-transform: uppercase; margin-top: 10px; letter-spacing: 1px; }
+        .stat-value { font-size: 17px; font-weight: 700; color: #fff; margin: 1px 0; display: flex; align-items: center; }
+        .stat-unit { font-size: 11px; color: #f00; margin-left: 4px; font-weight: 400; }
+        .max-val { font-size: 10px; color: #00d4ff; margin-top: -2px; opacity: 0.9; }
+        .gauge-bar { width: 100%; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+        .gauge-fill { height: 100%; transition: width 1s ease; }
+        .title-h { font-weight:300; margin:0 0 10px 0; font-size:13px; letter-spacing:1.5px; text-align:center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+        #box-avatar { width: 100px; margin: 0 auto 15px auto; display: block; filter: drop-shadow(0 0 10px rgba(255,0,0,0.3)); }
+        .led { height: 9px; width: 9px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .led-active { background: #00d4ff; box-shadow: 0 0 8px #00d4ff; }
+        .led-off { background: #444; }
+        .vm-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; margin-top: 10px; border-left: 4px solid #444; }
+        .vm-card.active { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
+        .vpn-card { background: rgba(0,212,255,0.06); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #00d4ff; }
+        .vpn-name { font-size: 12px; font-weight: 700; color: #fff; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .vpn-proto { font-size: 10px; font-weight: 600; color: #00d4ff; letter-spacing: 0.3px; }
+        .vpn-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
+        .vm-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; font-weight: 700; }
+        .vm-ip { font-size: 11px; color: #00d4ff; font-family: monospace; margin-top: 0; }
+        .sw-dots { display: flex; justify-content: space-between; gap: 4px; margin: 6px 0 4px 0; }
+        .sw-dot { flex: 1; text-align: center; font-size: 10px; font-weight: 700; color: #888; }
+        .sw-dot.up { color: #fff; }
+        .sw-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 8px 10px; margin-top: 8px; border-left: 3px solid #888; }
+        .sw-card.up { border-left-color: #00ff00; background: rgba(0,255,0,0.05); }
+        .sw-card.down { border-left-color: #444; }
+        .sw-name { font-size: 12px; font-weight: 700; color: #fff; }
+        .sw-meta { font-size: 10px; color: #aaa; margin-top: 2px; word-break: break-all; }
+        .footer-info { margin-top: 15px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.2); font-size: 11px; line-height: 1.6; color: #ccc; }
+    `);
+
+    function addSocialTiles() {
+        if (document.getElementById('social-tiles-container')) return;
+        const container = document.createElement('div');
+        container.id = 'social-tiles-container';
+        container.innerHTML =
+            '<a href="https://x.com/UniversFreebox/" target="_blank" class="social-tile"><div class="icon-wrapper">' + X_SVG + '</div><span>X Univers Freebox</span></a>' +
+            '<a href="https://www.universfreebox.com/" target="_blank" class="social-tile"><div class="icon-wrapper"><img src="' + ICON_UF + '" class="icon-img" onerror="this.style.display=\'none\'"></div><span>Univers Freebox</span></a>' +
+            '<a href="https://x.com/free" target="_blank" class="social-tile"><div class="icon-wrapper">' + X_SVG + '</div><span>X Free</span></a>' +
+            '<a href="https://subscribe.free.fr/login/" target="_blank" class="social-tile"><div class="icon-wrapper white-tile-custom"><img src="' + ICON_FREEBOX + '" class="icon-img" onerror="this.style.display=\'none\'"></div><span>Espace Freebox</span></a>' +
+            '<a href="https://mobile.free.fr/account/v2" target="_blank" class="social-tile"><div class="icon-wrapper white-tile-custom"><img src="' + ICON_MOBILE + '" class="icon-img" onerror="this.style.display=\'none\'"></div><span>Espace Mobile</span></a>';
+        document.body.appendChild(container);
+    }
+
+    function build() {
+        if (!document.getElementById('panel-left')) {
+            const pl = document.createElement('div');
+            pl.id = 'panel-left'; pl.className = 'ultra-panel';
+            document.body.appendChild(pl);
+        }
+        if (!document.getElementById('panel-right')) {
+            const pr = document.createElement('div');
+            pr.id = 'panel-right'; pr.className = 'ultra-panel';
+            document.body.appendChild(pr);
+        }
+        addSocialTiles();
+    }
+
+    async function refresh() {
+        build();
+        try {
+            const [conn, config, sys, diskData, partData, wifi, dhcpCfg, vmData, vpn8, vpn4, lanHosts, swStatus] = await Promise.all([
+                api('/api/v4/connection/'),
+                api('/api/v4/connection/config/'),
+                api('/api/v4/system/'),
+                api('/api/v4/storage/disk/'),
+                api('/api/v4/storage/partition/'),
+                api('/api/v4/wifi/config/'),
+                api('/api/v4/dhcp/config/'),
+                api('/api/v8/vm/'),
+                api('/api/v8/vpn/connection/'),
+                api('/api/v4/vpn/connection/'),
+                api('/api/v4/lan/browser/pub/'),
+                api('/api/v4/switch/status/')
+            ]);
+            const macIp = buildMacIpMap((lanHosts.success && Array.isArray(lanHosts.result)) ? lanHosts.result : []);
+            const swPorts = (swStatus.success && Array.isArray(swStatus.result)) ? swStatus.result : [];
+            const statsById = {};
+            await Promise.all(swPorts.filter(function (p) {
+                return p && String(p.link || '').toLowerCase() === 'up';
+            }).map(async function (p) {
+                const st = await api('/api/v4/switch/port/' + p.id + '/stats');
+                if (st.success && st.result) statsById[p.id] = st.result;
+            }));
+            if (!conn.success || !sys.success) return;
+            const c = conn.result || {};
+            const s = sys.result || {};
+            const adblockOn = !!(config.success && config.result && config.result.adblock);
+            const wifiOn = !!(wifi.success && wifi.result && wifi.result.enabled);
+            const dnsPrimary = (dhcpCfg.success && dhcpCfg.result && dhcpCfg.result.dns && dhcpCfg.result.dns.length) ? dhcpCfg.result.dns[0] : 'Auto';
+            const updateIcon = s.need_reboot ? '<span style="color:#f44336">Redemarrer</span>' : '<span style="color:#4CAF50">A jour</span>';
+            const down = fmtRateBytes(c.rate_down);
+            const up = fmtRateBytes(c.rate_up);
+            const capDown = fmtCapBits(c.bandwidth_down);
+            const capUp = fmtCapBits(c.bandwidth_up);
+            const state = (c.state || 'n/a').toUpperCase();
+            const media = (c.media || '').toUpperCase();
+            const linkOk = state === 'UP' || state === 'ACTIVE';
+            let vpnList = [];
+            const vpnSrc = (vpn8.success && Array.isArray(vpn8.result)) ? vpn8 : vpn4;
+            if (vpnSrc.success && Array.isArray(vpnSrc.result)) {
+                vpnList = vpnSrc.result.filter(function (x) { return x && (x.authenticated !== false); });
+            }
+            const left = document.getElementById('panel-left');
+            if (left) {
+                left.innerHTML =
+                    '<h1 class="title-h">ULTRA <span style="color:#f00; font-weight:900;">NET</span></h1>' +
+                    '<img id="box-avatar" src="' + BOX_IMG + '" alt="" onerror="this.classList.add(\'broken\')">' +
+                    '<div class="stat-label">Systeme OS</div>' +
+                    '<div style="font-size:11px; margin-bottom:4px;">Version : <b>' + (s.firmware_version || '?') + '</b></div>' +
+                    '<div style="font-size:11px; margin-bottom:4px;">Etat : <b>' + updateIcon + '</b></div>' +
+                    '<div style="font-size:11px; color:#aaa; margin-bottom:8px;">Uptime : ' + (s.uptime || '?') + '</div>' +
+                    '<div class="stat-label">Reseau Wi-Fi</div>' +
+                    '<div class="stat-value"><span class="led ' + (wifiOn ? 'led-active' : 'led-off') + '"></span>' + (wifiOn ? 'ACTIF' : 'OFF') + '</div>' +
+                    '<div class="stat-label">Debit Descendant</div>' +
+                    '<div class="stat-value">' + down.v + '<span class="stat-unit">' + down.u + '</span></div>' +
+                    '<div class="max-val">Capacite : ' + capDown + '</div>' +
+                    '<div class="stat-label">Debit Montant</div>' +
+                    '<div class="stat-value">' + up.v + '<span class="stat-unit">' + up.u + '</span></div>' +
+                    '<div class="max-val">Capacite : ' + capUp + '</div>' +
+                    '<div class="footer-info">' +
+                    (media || 'LIEN') + ' : <b style="color:' + (linkOk ? '#0f0' : '#f00') + ';">' + state + '</b>' +
+                    (media ? ' (' + media + ')' : '') + '<br>' +
+                    'IPv4 : <b style="color:#fff">' + (c.ipv4 || 'N/A') + '</b><br>' +
+                    (c.ipv6 ? 'IPv6 : <b style="color:#fff;font-size:10px">' + c.ipv6 + '</b><br>' : '') +
+                    'DNS : <b style="color:#00d4ff">' + dnsPrimary + '</b><br>' +
+                    'Adblock : <b style="color:' + (adblockOn ? '#0f0' : '#f00') + '">' + (adblockOn ? 'ACTIF' : 'OFF') + '</b></div>';
+            }
+            let vmsHtml = '';
+            if (vmData.success && Array.isArray(vmData.result) && vmData.result.length) {
+                vmData.result.forEach(function (vm) {
+                    const on = vm.status === 'running';
+                    const ip = macIp[normMac(vm.mac || vm.mac_address)] || (String(vm.name || '').toLowerCase().indexOf('plex') !== -1 ? '192.168.1.100' : '');
+                    vmsHtml += '<div class="vm-card ' + (on ? 'active' : '') + '">' +
+                        '<div class="vm-line"><span class="led" style="background:' + (on ? '#0f0' : '#f00') + '; height:7px; width:7px;"></span>' +
+                        String(vm.name || 'VM').toUpperCase() +
+                        '<span style="color:' + (on ? '#00ff00' : '#ff4444') + '; font-family:monospace;">' + (on ? 'ONLINE' : 'OFFLINE') + '</span>' +
+                        (ip ? '<span class="vm-ip">' + ip + '</span>' : '') +
+                        '</div></div>';
+                });
+            } else {
+                vmsHtml = '<div style="font-size:11px;color:#888;margin-top:8px;">Aucune VM</div>';
+            }
+            let diskTemp = 'N/A', freeGB = '0', diskPercent = 0;
+            if (diskData.success && diskData.result && diskData.result[0]) {
+                const t = diskData.result[0].temp;
+                diskTemp = (t === 0 || t) ? t + '\u00b0C' : 'N/A';
+            }
+            if (partData.success && Array.isArray(partData.result)) {
+                const p = partData.result.find(function (part) { return part.total_bytes > 0; });
+                if (p) {
+                    freeGB = ((p.total_bytes - p.used_bytes) / (1024 ** 3)).toFixed(1);
+                    diskPercent = ((p.used_bytes / p.total_bytes) * 100).toFixed(1);
+                }
+            }
+            const cpuTemps = [s.temp_cpu0 || s.temp_cpum, s.temp_cpu1 || s.temp_cpum, s.temp_cpu2 || s.temp_cpub, s.temp_cpu3 || s.temp_cpub];
+            const fan = Number(s.fan_rpm) || 0;
+            const right = document.getElementById('panel-right');
+            if (right) {
+                right.innerHTML =
+                    '<div style="display: flex; flex-wrap: wrap; justify-content: space-between;">' +
+                    cpuTemps.map(function (t, i) {
+                        const col = tempColor(t);
+                        const val = (t === 0 || t) ? t : '--';
+                        return '<div style="width: 48%; margin-bottom: 8px;">' +
+                            '<div class="stat-label" style="margin-top:0;">CPU ' + i + '</div>' +
+                            '<div class="stat-value" style="font-size:12px; color:' + col + ';">' + val + '\u00b0C</div>' +
+                            '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, Number(t) || 0) + '%; background:' + col + ';"></div></div></div>';
+                    }).join('') +
+                    '</div>' +
+                    '<div class="stat-label">NVMe libre</div>' +
+                    '<div class="stat-value" style="font-size:12px;">' + freeGB + ' Go <span style="font-size:10px; color:#aaa; margin-left:auto;">' + diskTemp + '</span></div>' +
+                    '<div class="gauge-bar"><div class="gauge-fill" style="width:' + diskPercent + '%; background:#2196F3;"></div></div>' +
+                    '<div class="stat-label">Ventilation</div>' +
+                    '<div class="stat-value" style="font-size:12px;">' + fan + ' RPM</div>' +
+                    '<div class="gauge-bar"><div class="gauge-fill" style="width:' + Math.min(100, (fan / 3500) * 100) + '%; background:#888;"></div></div>' +
+                    '<div class="stat-label" style="margin-top:15px; border-top:1px solid #333; padding-top:8px;">Serveurs / VMs</div>' +
+                    vmsHtml +
+                    '<div style="margin-top:12px;border-top:1px solid #333;padding-top:4px;">' + vpnHtml(vpnList) + '</div>' +
+                    switchHtml(swPorts, macIp, statsById);
+            }
+        } catch (e) {
+            console.error('[Ultra Dashboard]', e);
+        }
+    }
+
+    build();
+    refresh();
+    setInterval(refresh, 5000);
+    const mo = new MutationObserver(function () {
+        if (!document.getElementById('panel-left') || !document.getElementById('social-tiles-container')) build();
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+})();
